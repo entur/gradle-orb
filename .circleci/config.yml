@@ -1,0 +1,40 @@
+version: 2.1
+
+orbs:
+  orb-tools: circleci/orb-tools@3.0.0
+
+executors:
+  lint-condo:
+    resource_class: small
+    docker:
+      - image: singapore/lint-condo
+
+jobs:
+  lint:
+    executor: lint-condo
+    steps:
+      - checkout
+      - run: yamllint .
+
+workflows:
+  verify:
+    jobs:
+      - lint
+      - orb-tools/publish:
+          name: publish
+          context: orb-publishing
+          filters:
+            branches:
+              ignore: master
+          orb-path: src/@orb.yml
+          orb-ref: entur/gradle@dev:$CIRCLE_BRANCH
+      - orb-tools/increment:
+          name: release
+          context: orb-publishing
+          filters:
+            branches:
+              only: master
+          orb-path: src/@orb.yml
+          orb-ref: entur/gradle
+          requires:
+            - lint
