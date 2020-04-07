@@ -60,6 +60,10 @@ commands:
     parameters:
       steps:
         type: steps
+      cache_key:
+        description: Specify a custom cache key (optional).
+        type: string
+        default: "default"
     steps:
     - run:
         command: |
@@ -88,10 +92,10 @@ commands:
         name: Generate Cache Checksum
     - restore_cache:
         keys:
-        - gradle-grandparent{{ checksum "/tmp/git_last_previous_hash" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}
     - steps: << parameters.steps >>
     - save_cache:
-        key: gradle-grandparent{{ checksum "/tmp/git_last_hash" }}
+        key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}
         paths:
         - ~/.gradle/caches
         - ~/.gradle/wrapper
@@ -172,9 +176,14 @@ jobs:
         default: default
         description: The name of custom executor to use
         type: executor
+      cache_key:
+        description: Specify a custom cache key (optional).
+        type: string
+        default: "default"
     steps:
     - checkout
     - with_cache:
+        cache_key: << parameters.cache_key >>
         steps:
         - run:
             command: ./gradlew << parameters.command >>
@@ -206,9 +215,14 @@ jobs:
         default: build/test-results/
         description: Results to be published
         type: string
+      cache_key:
+        description: Specify a custom cache key (optional).
+        type: string
+        default: "default"
     steps:
     - checkout
     - with_cache:
+        cache_key: << parameters.cache_key >>
         steps:
         - run:
             command: ./gradlew << parameters.test_command >>
