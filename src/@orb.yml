@@ -93,7 +93,6 @@ commands:
                 cp /tmp/git_latest_child /tmp/git_parent
               else
                 parentBranch=$(git show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//")
-                echo "Parent branch is $parentBranch"
                 parentHash=$(git merge-base HEAD "remotes/origin/$parentBranch")
                 lastParentChangesHash=$(git log -n 1 --pretty=format:%H $parentHash -- $buildFiles)
                 #
@@ -106,6 +105,7 @@ commands:
                   masterHash=$(git merge-base HEAD remotes/origin/master)
                   lastMasterHash=$(git log -n 1 --pretty=format:%H $masterHash -- $buildFiles)
                   echo "$lastMasterHash" > /tmp/git_grandparent
+                  echo "Master branch last commit to modify build files is $lastMasterHash"
                 fi
               fi
 
