@@ -1,6 +1,9 @@
 
 # gradle-orb
-A Circle CI orb using Git to control Gradle caching.
+A Circle CI orb using Git to control Gradle caching. Supports two patterns:
+
+ * master - feature
+ * master - develop - feature
 
 ## Usage
 Import the orb
@@ -11,4 +14,5 @@ orbs:
 ```
 
 where `x` is the latest version from [the orb registry](https://circleci.com/orbs/registry/orb/entur/gradle).
+
 
