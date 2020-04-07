@@ -73,11 +73,10 @@ commands:
               #
               if [ "$lastPreviousHash" = "$lastHash" ]; then
                 echo "Build files did not update last commit"
-                echo "$lastPreviousHash" > /tmp/git_previous_child
               else
                 echo "Build files did update last commit"
-                echo "$lastHash" > /tmp/git_previous_child
               fi
+              echo "$lastPreviousHash" > /tmp/git_previous_child
               echo "$lastHash" > /tmp/git_latest_child
               #
               # build grandparent and parent
