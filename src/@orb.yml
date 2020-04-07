@@ -78,46 +78,14 @@ commands:
               fi
               echo "$lastPreviousHash" > /tmp/git_previous_child
               echo "$lastHash" > /tmp/git_latest_child
-              #
-              # build grandparent and parent
-              # alternatives
-              # - master
-              # - master, feature
-              # - master, develop
-              # - master, develop, feature
-              #
-              currentBranch=$(git rev-parse --abbrev-ref HEAD)
-              if [ "$currentBranch" = "master" ]; then
-                echo "Current branch is master"
-                cp /tmp/git_latest_child /tmp/git_grandparent
-                cp /tmp/git_latest_child /tmp/git_parent
-              else
-                parentBranch=$(git show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//")
-                parentHash=$(git merge-base HEAD "remotes/origin/$parentBranch")
-                lastParentChangesHash=$(git log -n 1 --pretty=format:%H $parentHash -- $buildFiles)
-                #
-                echo "Parent branch is $parentBranch, last commit to modify build files is $lastParentChangesHash"
-                #
-                echo "$lastParentChangesHash" > /tmp/git_parent
-                if [ "$parentBranch" = "master" ]; then
-                  echo "$parentHash" > /tmp/git_grandparent
-                else
-                  masterHash=$(git merge-base HEAD remotes/origin/master)
-                  lastMasterHash=$(git log -n 1 --pretty=format:%H $masterHash -- $buildFiles)
-                  echo "$lastMasterHash" > /tmp/git_grandparent
-                  echo "Master branch last commit to modify build files is $lastMasterHash"
-                fi
-              fi
 
         name: Generate Cache Checksum
     - restore_cache:
         keys:
-        - gradle-grandparent{{ checksum "/tmp/git_grandparent" }}-parent-{{ checksum "/tmp/git_parent" }}-child-{{ checksum "/tmp/git_previous_child" }}
-        - gradle-grandparent{{ checksum "/tmp/git_grandparent" }}-parent-{{ checksum "/tmp/git_parent" }}
-        - gradle-grandparent{{ checksum "/tmp/git_grandparent" }}
+        - gradle-grandparent{{ checksum "/tmp/git_previous_child" }}
     - steps: << parameters.steps >>
     - save_cache:
-        key: gradle-grandparent{{ checksum "/tmp/git_grandparent" }}-parent-{{ checksum "/tmp/git_parent" }}-child-{{ checksum "/tmp/git_latest_child" }}
+        key: gradle-grandparent{{ checksum "/tmp/git_latest_child" }}
         paths:
         - ~/.gradle/caches
         - ~/.gradle/wrapper
