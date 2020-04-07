@@ -100,7 +100,7 @@ commands:
               # will there be a new cache entry?
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
                 echo "No new cache entry will be created"
-              elif [ -d "~/.gradle/caches" ]; then
+              elif [ -d ~/.gradle/caches ]; then
                 ./gradlew --stop --info
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
                 find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
