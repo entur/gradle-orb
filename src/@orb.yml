@@ -92,10 +92,25 @@ commands:
         name: Generate Cache Checksum
     - restore_cache:
         keys:
-        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}
     - steps: << parameters.steps >>
+    - run:
+        name: Optionally clean up cache.
+        command: |
+              # will there be a new cache entry?
+              if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
+                echo "No new cache entry will be created"
+              else
+                if [ -d "~/.gradle/caches/" ]; then
+                  ./gradlew --stop --info
+                  echo "A new cache entry will be created, deleting files not accessed during this build.."
+                  find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
+                  find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
+                  echo "Files deleted"
+                fi
+              fi
     - save_cache:
-        key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}
+        key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}
         paths:
         - ~/.gradle/caches
         - ~/.gradle/wrapper
