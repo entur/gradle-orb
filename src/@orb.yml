@@ -55,8 +55,8 @@ commands:
       if successful, then a fresh cache will be saved, if required.
       The contents of the `~/.gradle` directory is cached, which will substantially
       improve build times for projects with many dependencies.
-      The cache-key is generated from any files named `build.gradle` that are
-      present in the `working_directory`.
+      The cache-key is generated using the commit hash from from any files named
+      `build.gradle` that are present in the `working_directory`.
     parameters:
       steps:
         type: steps
@@ -65,27 +65,33 @@ commands:
         command: |
               # find build files
               buildFiles=$(find . -name 'build.gradle' | sed 's/.*/&/' | tr '\n' ' ')
-              echo "build files are $buildFiles"
-              #
-              lastPreviousHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
-              echo "Last commit to modify build files is hash (excluding last commit) is $lastPreviousHash"
+              # get the latest commit which modified the build files
               lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
-              #
-              if [ "$lastPreviousHash" = "$lastHash" ]; then
-                echo "Build files did not update last commit"
+              # do a check that there actually is more than one revision
+              revisions=$(git rev-list --count HEAD)
+              if [ "$revisions" -gt "0" ]; then
+                # check which previous revision was the last to modify the build files
+                lastPreviousHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
+                echo "Last commit to modify build files is hash (excluding last commit) is $lastPreviousHash"
+                if [ "$lastPreviousHash" = "$lastHash" ]; then
+                  echo "Build files did not update last commit"
+                else
+                  echo "Build files did update last commit"
+                fi
               else
+                lastPreviousHash=$lastHash
                 echo "Build files did update last commit"
               fi
-              echo "$lastPreviousHash" > /tmp/git_previous_child
-              echo "$lastHash" > /tmp/git_latest_child
+              echo "$lastPreviousHash" > /tmp/git_last_previous_hash
+              echo "$lastHash" > /tmp/git_last_hash
 
         name: Generate Cache Checksum
     - restore_cache:
         keys:
-        - gradle-grandparent{{ checksum "/tmp/git_previous_child" }}
+        - gradle-grandparent{{ checksum "/tmp/git_last_previous_hash" }}
     - steps: << parameters.steps >>
     - save_cache:
-        key: gradle-grandparent{{ checksum "/tmp/git_latest_child" }}
+        key: gradle-grandparent{{ checksum "/tmp/git_last_hash" }}
         paths:
         - ~/.gradle/caches
         - ~/.gradle/wrapper
