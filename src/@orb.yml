@@ -101,11 +101,14 @@ commands:
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
                 echo "No new cache entry will be created"
               elif [ -d ~/.gradle/caches ]; then
-                ./gradlew --stop --info
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
+                ./gradlew --stop
+                echo "Folder sizes:"
+                du -h --max-depth=1 ~/.gradle/caches
                 find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
                 find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
-                echo "Files deleted"
+                echo "Remaing folder sizes:"
+                du -h --max-depth=1 ~/.gradle/caches
               else
                 echo "A new cache entry will be created"
               fi
