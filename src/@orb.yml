@@ -63,36 +63,49 @@ commands:
     steps:
     - run:
         command: |
-              developHash=$(git merge-base HEAD remotes/origin/develop)
-              echo "Last common develop hash $developHash"
-              masterHash=$(git merge-base HEAD remotes/origin/master)
-              echo "Last common master hash $masterHash"
-              #
+              # find build files
               buildFiles=$(find . -name 'build.gradle' | sed 's/.*/&/' | tr '\n' ' ')
               echo "build files are $buildFiles"
               #
               lastPreviousHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
-              echo "Last last hash (excluding last commit) is $lastPreviousHash"
-              #
-              lastDevelopChangesHash=$(git log -n 1 --pretty=format:%H $developHash -- $buildFiles)
-              #
-              echo "Last changes on develop at hash $lastDevelopChangesHash"
-              #
-              lastMasterHash=$(git log -n 1 --pretty=format:%H $masterHash -- $buildFiles)
-              #
-              echo "Last changes on master at hash $lastMasterHash"
-              #
-              echo "$masterHash" > /tmp/git_grandparent
-              echo "$developHash" > /tmp/git_parent
-              echo "$lastPreviousHash" > /tmp/git_previous_child
-              #
+              echo "Last commit to modify build files is hash (excluding last commit) is $lastPreviousHash"
               lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
+              #
               if [ "$lastPreviousHash" = "$lastHash" ]; then
                 echo "Build files did not update last commit"
                 echo "$lastPreviousHash" > /tmp/git_latest_child
               else
                 echo "Build files did update last commit"
                 echo "$lastHash" > /tmp/git_latest_child
+              fi
+              # build grandparent and parent
+              # alternatives
+              # - master
+              # - master, feature
+              # - master, develop
+              # - master, develop, feature
+              #
+              currentBranch=$(git rev-parse --abbrev-ref HEAD)
+              if [ "$currentBranch" = "master" ]; then
+                echo "Current branch is master"
+                cp /tmp/git_latest_child /tmp/git_grandparent
+                cp /tmp/git_latest_child /tmp/git_parent
+              else
+                parentBranch=$(it show-branch | sed "s/].*//" | grep "\*" | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -n1 | sed "s/^.*\[//")
+                echo "Parent branch is $parentBranch"
+                parentHash=$(git merge-base HEAD "remotes/origin/$parentBranch")
+                lastParentChangesHash=$(git log -n 1 --pretty=format:%H $parentHash -- $buildFiles)
+                #
+                echo "Parent branch is $parentBranch, last commit to modify build files is $lastParentChangesHash"
+                #
+                echo "$lastParentChangesHash" > /tmp/git_parent
+                if [ "$parentBranch" = "master" ]; then
+                  echo "$parentHash" > /tmp/git_grandparent
+                else
+                  masterHash=$(git merge-base HEAD remotes/origin/master)
+                  lastMasterHash=$(git log -n 1 --pretty=format:%H $masterHash -- $buildFiles)
+                  echo "$lastMasterHash" > /tmp/git_grandparent
+                fi
               fi
 
         name: Generate Cache Checksum
