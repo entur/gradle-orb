@@ -63,9 +63,9 @@ commands:
     steps:
     - run:
         command: |
-              developHash=$(git merge-base HEAD develop)
+              developHash=$(git merge-base HEAD remotes/origin/develop)
               echo "Last common develop hash $developHash"
-              masterHash=$(git merge-base HEAD master)
+              masterHash=$(git merge-base HEAD remotes/origin/master)
               echo "Last common master hash $masterHash"
               #
               buildFiles=$(find . -name 'build.gradle' | sed 's/.*/&/' | tr '\n' ' ')
