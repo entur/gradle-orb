@@ -98,6 +98,21 @@ commands:
               touch /tmp/git_last_hash
               echo "Folder sizes:"
               du -h --max-depth=1 ~/.gradle/caches
+              GRADLE_DIRECTORY="$HOME/.gradle"
+              if [[ ! -e $GRADLE_DIRECTORY ]]; then
+                  mkdir $GRADLE_DIRECTORY
+              fi
+              GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+              AGENT="$GRADLE_DIRECTORY/agent.jar"
+              if [ -f "$AGENT" ]; then
+                  echo "$AGENT exists."
+              else
+                  echo "$AGENT does not exist, download."
+                  wget -O "$GRADLE_DIRECTORY/agent.jar" https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/1.0.0-SNAPSHOT/gradle-1.0.0-20200817.140647-1.jar
+              fi
+              echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
+              echo "org.gradle.jvmargs=-javaagent:$AGENT" >> $GRADLE_PROPERTIES
+
     - steps: << parameters.steps >>
     - run:
         name: Perform optionally cache cleanup.
