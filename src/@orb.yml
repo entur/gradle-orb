@@ -96,12 +96,16 @@ commands:
         name: Prepare optional cache cleanup.
         command: |
               touch /tmp/git_last_hash
-              echo "Folder sizes:"
-              du -h --max-depth=1 ~/.gradle/caches
               GRADLE_DIRECTORY="$HOME/.gradle"
               if [[ ! -e $GRADLE_DIRECTORY ]]; then
                   mkdir $GRADLE_DIRECTORY
               fi
+              GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
+              if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
+                  mkdir $GRADLE_CACHE_DIRECTORY
+              fi
+              echo "Folder sizes:"
+              du -h --max-depth=1 ~/.gradle/caches
               GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
               AGENT="$GRADLE_DIRECTORY/agent.jar"
               if [ -f "$AGENT" ]; then
