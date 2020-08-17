@@ -115,7 +115,7 @@ commands:
 
     - steps: << parameters.steps >>
     - run:
-        name: Perform optionally cache cleanup.
+        name: Perform cache cleanup.
         command: |
               # will there be a new cache entry?
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
