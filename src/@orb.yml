@@ -93,26 +93,27 @@ commands:
         keys:
         - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}
     - run:
-        name: Prepare optional cache cleanup.
+        name: Prepare cache cleanup.
         command: |
               touch /tmp/git_last_hash
               GRADLE_DIRECTORY="$HOME/.gradle"
               if [[ ! -e $GRADLE_DIRECTORY ]]; then
-                  mkdir $GRADLE_DIRECTORY
+                  mkdir -p $GRADLE_DIRECTORY
               fi
               GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
               if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
-                  mkdir $GRADLE_CACHE_DIRECTORY
+                  mkdir -p $GRADLE_CACHE_DIRECTORY
               fi
               echo "Folder sizes:"
               du -h --max-depth=1 ~/.gradle/caches
               GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-              AGENT="$GRADLE_DIRECTORY/agent.jar"
+              AGENT="$GRADLE_CACHE_DIRECTORY/agent.jar"
               if [ -f "$AGENT" ]; then
                   echo "$AGENT exists."
               else
                   echo "$AGENT does not exist, download."
-                  wget -O "$GRADLE_DIRECTORY/agent.jar" https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/1.0.0-SNAPSHOT/gradle-1.0.0-20200817.140647-1.jar
+                  # wget -O - -o /dev/null https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/maven-metadata.xml | grep -Po '(?<=<version>)([0-9\.]+(-SNAPSHOT)?)' | sort --version-sort -r | head -n 1
+                  wget -O "$GRADLE_CACHE_DIRECTORY/agent.jar" https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/1.0.0-SNAPSHOT/gradle-1.0.0-20200817.140647-1.jar
               fi
               echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
               echo "org.gradle.jvmargs=-javaagent:$AGENT" >> $GRADLE_PROPERTIES
@@ -127,11 +128,11 @@ commands:
                 echo "No new cache entry will be created"
               elif [ -d ~/.gradle/caches ]; then
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
-                ./gradlew --stop
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
-                find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
-                find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
+                ./gradlew --stop
+                # find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
+                # find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
                 echo "Remaing folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
               else
