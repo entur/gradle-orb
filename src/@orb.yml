@@ -106,7 +106,11 @@ commands:
               fi
               echo "Folder sizes:"
               du -h --max-depth=1 ~/.gradle/caches
-
+              if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
+                echo "No new cache entry will be created"
+                GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+                echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
+              fi
     - steps: << parameters.steps >>
     - run:
         name: Perform cache cleanup.
@@ -134,6 +138,8 @@ commands:
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
+                # delete GC files, so that GC will always run
+                find ~/.gradle/caches -name gc.properties -delete
                 ./gradlew --stop
                 ./gradlew --no-daemon
                 # find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
