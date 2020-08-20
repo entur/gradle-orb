@@ -118,11 +118,11 @@ commands:
               elif [ -d ~/.gradle/caches ]; then
                 GRADLE_DIRECTORY="$HOME/.gradle"
                 GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+                GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
+                AGENT="$GRADLE_CACHE_DIRECTORY/agent.jar"
                 echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
                 echo "org.gradle.jvmargs=-javaagent:$AGENT" >> $GRADLE_PROPERTIES
                 # download agent
-                GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
-                AGENT="$GRADLE_CACHE_DIRECTORY/agent.jar"
                 if [ -f "$AGENT" ]; then
                     echo "$AGENT exists."
                 else
@@ -134,6 +134,7 @@ commands:
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
+                ./gradlew --stop
                 ./gradlew --no-daemon
                 # find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
                 # find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
