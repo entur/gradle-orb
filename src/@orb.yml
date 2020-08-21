@@ -1,318 +1,327 @@
 commands:
-  collect_test_results:
-    description: |
-      Store test reports to build artifacts.
-      Locate any JUnit test reports and store them as build artifacts and test results.
-      Store the HTML build report to build artifacts.
-    parameters:
-      reports_path:
-        default: build/reports/
-        description: Artifacts to be published
-        type: string
-      test_results_path:
-        default: build/test-results/
-        description: Results to be published
-        type: string
-    steps:
-    - when:
-        condition: <<parameters.test_results_path>>
+    collect_test_results:
+        description: |
+            Store test reports to build artifacts.
+            Locate any JUnit test reports and store them as build artifacts and test results.
+            Store the HTML build report to build artifacts.
+        parameters:
+            reports_path:
+                default: build/reports/
+                description: Artifacts to be published
+                type: string
+            test_results_path:
+                default: build/test-results/
+                description: Results to be published
+                type: string
         steps:
-        - store_test_results:
-            path: <<parameters.test_results_path>>
-        - store_artifacts:
-            destination: Results
-            path: <<parameters.test_results_path>>
-    - unless:
-        condition: <<parameters.test_results_path>>
+            - when:
+                condition: <<parameters.test_results_path>>
+                steps:
+                    - store_test_results:
+                        path: <<parameters.test_results_path>>
+                    - store_artifacts:
+                        destination: Results
+                        path: <<parameters.test_results_path>>
+            - unless:
+                condition: <<parameters.test_results_path>>
+                steps:
+                    - run:
+                        command: |
+                            mkdir -p /tmp/test_results/junit
+                            find . -name '*TEST-*.xml' -exec cp -v {} /tmp/test_results/junit \;
+                        name: Gather Test Results
+                    - store_test_results:
+                        path: /tmp/test_results
+                    - store_artifacts:
+                        destination: Results
+                        path: /tmp/test_results
+            - when:
+                condition: <<parameters.reports_path>>
+                steps:
+                    - store_artifacts:
+                        destination: Reports
+                        path: <<parameters.reports_path>>
+            - unless:
+                condition: <<parameters.reports_path>>
+                steps:
+                    - store_artifacts:
+                        destination: Reports
+                        path: build/reports/tests/test/
+    with_cache:
+        description: |
+            Run a set of steps with gradle dependencies cached.
+            This command will first restore a cache of gradle dependencies, if one was
+            saved by a previous build. The provided `steps` will then be executed, and
+            if successful, then a fresh cache will be saved, if required.
+            The contents of the `~/.gradle` directory is cached, which will substantially
+            improve build times for projects with many dependencies.
+            The cache-key is generated using the commit hash from from any files named
+            `build.gradle` that are present in the `working_directory`.
+        parameters:
+            cache_checksum_file:
+                default: build.gradle
+                description: File to use to generate the cache checksum, defaults to build.gradle.  For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+                type: string
+            cache_key:
+                description: Specify a custom cache key (optional).
+                type: string
+                default: v1
+            steps:
+                type: steps
         steps:
         - run:
+            name: Generate Cache Checksum
             command: |
-              mkdir -p /tmp/test_results/junit
-              find . -name '*TEST-*.xml' -exec cp -v {} /tmp/test_results/junit \;
-            name: Gather Test Results
-        - store_test_results:
-            path: /tmp/test_results
-        - store_artifacts:
-            destination: Results
-            path: /tmp/test_results
-    - when:
-        condition: <<parameters.reports_path>>
-        steps:
-        - store_artifacts:
-            destination: Reports
-            path: <<parameters.reports_path>>
-    - unless:
-        condition: <<parameters.reports_path>>
-        steps:
-        - store_artifacts:
-            destination: Reports
-            path: build/reports/tests/test/
-  with_cache:
-    description: |
-      Run a set of steps with gradle dependencies cached.
-      This command will first restore a cache of gradle dependencies, if one was
-      saved by a previous build. The provided `steps` will then be executed, and
-      if successful, then a fresh cache will be saved, if required.
-      The contents of the `~/.gradle` directory is cached, which will substantially
-      improve build times for projects with many dependencies.
-      The cache-key is generated using the commit hash from from any files named
-      `build.gradle` that are present in the `working_directory`.
-    parameters:
-      steps:
-        type: steps
-      cache_key:
-        description: Specify a custom cache key (optional).
-        type: string
-        default: "default"
-    steps:
-    - run:
-        command: |
-              # find build files
-              buildFiles=$(find . -name 'build.gradle' | sed 's/.*/&/' | tr '\n' ' ')
-              # get the latest commit which modified the build files
-              lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
-              # do a check that there actually is more than one revision
-              revisions=$(git rev-list --count HEAD)
-              if [ "$revisions" -gt "0" ]; then
-                # check which previous revision was the last to modify the build files
-                lastPreviousHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
-                if [ "$lastPreviousHash" = "$lastHash" ]; then
-                  echo "Build files did not update last commit"
+                # find build files
+                buildFiles=$(find . -name '<< parameters.cache_checksum_file>>' | sed 's/.*/&/' | tr '\n' ' ')
+                # get the latest commit which modified the build files
+                lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
+                # do a check that there actually is more than one revision
+                revisions=$(git rev-list --count HEAD)
+                if [ "$revisions" -gt "0" ]; then
+                  # check which previous revision was the last to modify the build files
+                  lastPreviousHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
+                  if [ "$lastPreviousHash" = "$lastHash" ]; then
+                    echo "Build files did not update last commit"
+                  else
+                    echo "Build files did update last commit"
+                  fi
                 else
+                  lastPreviousHash=$lastHash
                   echo "Build files did update last commit"
                 fi
-              else
-                lastPreviousHash=$lastHash
-                echo "Build files did update last commit"
-              fi
-              echo "$lastPreviousHash" > /tmp/git_last_previous_hash
-              echo "$lastHash" > /tmp/git_last_hash
+                echo "$lastPreviousHash" > /tmp/git_last_previous_hash
+                echo "$lastHash" > /tmp/git_last_hash
 
-        name: Generate Cache Checksum
-    - restore_cache:
-        keys:
-        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}
-    - run:
-        name: Prepare cache cleanup.
-        command: |
-              touch /tmp/git_last_hash
-              GRADLE_DIRECTORY="$HOME/.gradle"
-              if [[ ! -e $GRADLE_DIRECTORY ]]; then
+        - restore_cache:
+            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}
+        - run:
+            name: Prepare cache cleanup.
+            command: |
+                touch /tmp/git_last_hash
+                GRADLE_DIRECTORY="$HOME/.gradle"
+                if [[ ! -e $GRADLE_DIRECTORY ]]; then
                   mkdir -p $GRADLE_DIRECTORY
-              fi
-              GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
-              if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
+                fi
+                GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
+                if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
                   mkdir -p $GRADLE_CACHE_DIRECTORY
-              fi
-              echo "Folder sizes:"
-              du -h --max-depth=1 ~/.gradle/caches
-              if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
-                echo "No new cache entry will be created"
-                GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-                echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
-              fi
-    - steps: << parameters.steps >>
-    - run:
-        name: Perform cache cleanup.
-        when: always
-        command: |
-              # will there be a new cache entry?
-              # this check fails when the gradle wrapper version changed, but if so
-              # the cache is new and does not need cleanup
-              if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
-                echo "No new cache entry will be created, or gradle wrapper changed."
-              elif [ -d ~/.gradle/caches ]; then
-                cat > /tmp/cleanup.gradle \<< 'endmsg'
-                import static org.gradle.internal.serialize.BaseSerializerFactory.*
-                import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
-                import java.io.FileFilter
-                import org.gradle.internal.file.impl.DefaultDeleter
-                import java.nio.file.Files
-                def iterate(File file, BTreePersistentIndexedCache<File, Long> j, long deadline, deleter) {
-                    FileFilter jarFilter = {f -> f.getName().endsWith(".jar")};
-                    File[] jarFiles = file.listFiles(jarFilter);
-                    if(jarFiles != null && jarFiles.length > 0) {
-                        Long journalTimestamp = j.get(file);
-                        if(journalTimestamp != null && journalTimestamp < deadline) {
-                            long size = jarFiles[0].length();
-                            System.out.println(file.path + ' -> ' + new Date(journalTimestamp) + ' to be deleted');
-                            j.remove(file)
-                            deleter.deleteRecursively(file);
-                            return size;
-                        }
-                    }
-                    long size = 0L;
-                    FileFilter dirFilter = {f -> f.isDirectory()};
-                    File[] dirFiles = file.listFiles(dirFilter);
-                    if(dirFiles != null && dirFiles.length > 0) {
-                        for(File dirFile : dirFiles) {
-                                size += iterate(dirFile, j, deadline, deleter);
-                        }
-                    }
-                    return size;
-                }
-                File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
-                BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
-                DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
-                File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
-                FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-")};
-                File[] caches = cachesDirectory.listFiles(jarCacheFilter)
-                File deadlineFile = new File(deadline);
-                long deleted = 0;
-                for(File cache : caches) {
-                    deleted += iterate (cache, journal, deadlineFile.lastModified(), deleter)
-                }
-                journal.close()
-                println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
-              endmsg
-                echo "A new cache entry will be created, deleting files not accessed during this build.."
+                fi
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
-                # delete GC files, so that GC will always run
-                find ~/.gradle/caches -name gc.properties -delete
-                ./gradlew --stop
-                ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
-                echo "Remaing folder sizes:"
-                du -h --max-depth=1 ~/.gradle/caches
-              else
-                echo "A new cache entry will be created"
-              fi
-    - save_cache:
-        key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}
-        when: always
-        paths:
-        - ~/.gradle/caches
-        - ~/.gradle/wrapper
+                if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
+                  echo "No new cache entry will be created"
+                  GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+                  echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
+                fi
+        - steps: << parameters.steps >>
+        - run:
+            name: Perform cache cleanup.
+            when: always
+            command: |
+                # will there be a new cache entry?
+                # this check fails when the gradle wrapper version changed, but if so
+                # the cache is new and does not need cleanup
+                if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
+                    echo "No new cache entry will be created, or gradle wrapper changed."
+                elif [ -d ~/.gradle/caches ]; then
+                    cat > /tmp/cleanup.gradle \<< 'endmsg'
+                    import static org.gradle.internal.serialize.BaseSerializerFactory.*
+                    import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
+                    import java.io.FileFilter
+                    import org.gradle.internal.file.impl.DefaultDeleter
+                    import java.nio.file.Files
+                    def iterate(File file, BTreePersistentIndexedCache<File, Long> j, long deadline, deleter) {
+                            FileFilter jarFilter = {f -> f.getName().endsWith(".jar")};
+                            File[] jarFiles = file.listFiles(jarFilter);
+                            if(jarFiles != null && jarFiles.length > 0) {
+                                    Long journalTimestamp = j.get(file);
+                                    if(journalTimestamp != null && journalTimestamp < deadline) {
+                                            long size = jarFiles[0].length();
+                                            System.out.println(file.path + ' -> ' + new Date(journalTimestamp) + ' to be deleted');
+                                            j.remove(file)
+                                            deleter.deleteRecursively(file);
+                                            return size;
+                                    }
+                            }
+                            long size = 0L;
+                            FileFilter dirFilter = {f -> f.isDirectory()};
+                            File[] dirFiles = file.listFiles(dirFilter);
+                            if(dirFiles != null && dirFiles.length > 0) {
+                                    for(File dirFile : dirFiles) {
+                                                    size += iterate(dirFile, j, deadline, deleter);
+                                    }
+                            }
+                            return size;
+                    }
+                    File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
+                    BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
+                    DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
+                    File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
+                    FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-")};
+                    File[] caches = cachesDirectory.listFiles(jarCacheFilter)
+                    File deadlineFile = new File(deadline);
+                    long deleted = 0;
+                    for(File cache : caches) {
+                            deleted += iterate (cache, journal, deadlineFile.lastModified(), deleter)
+                    }
+                    journal.close()
+                    println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
+                endmsg
+                    echo "A new cache entry will be created, deleting files not accessed during this build.."
+                    echo "Folder sizes:"
+                    du -h --max-depth=1 ~/.gradle/caches
+                    # delete GC files, so that GC will always run
+                    find ~/.gradle/caches -name gc.properties -delete
+                    ./gradlew --stop
+                    ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
+                    echo "Remaing folder sizes:"
+                    du -h --max-depth=1 ~/.gradle/caches
+                else
+                    echo "A new cache entry will be created"
+                fi
+        - save_cache:
+            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}
+            when: always
+            paths:
+                - ~/.gradle/caches
+                - ~/.gradle/wrapper
 description: |
-  Simplify common tasks for building and testing Java projects using Gradle.
+    Simplify common tasks for building and testing Java projects using Gradle.
 display:
-  home_url: https://gradle.org/
-  source_url: https://github.com/entur/gradle-orb
+    home_url: https://gradle.org/
+    source_url: https://github.com/CircleCI-Public/gradle-orb
 examples:
-  build_and_test:
-    description: Checkout, build, and test a Gradle project
-    usage:
-      orbs:
-        gradle: circleci/gradle@x.y
-      version: 2.1
-      workflows:
-        checkout-build-test:
-          jobs:
-          - gradle/test
-  custom_executor:
-    description: |
-      How to override the default executor and supply your own custom Docker image to the gradle orb jobs.
-    usage:
-      executors:
-        my-executor:
-          docker:
-          - image: org/image:tag
-      orbs:
-        gradle: circleci/gradle@x.y
-      version: 2.1
-      workflows:
-        gradle_test:
-          jobs:
-          - gradle/test:
-              executor: my-executor
-  custom_reports:
-    description: |
-      Publish custom results and reports.
-    usage:
-      orbs:
-        gradle: circleci/gradle@x.y
-      version: 2.1
-      workflows:
-        test-with-custom-reports:
-          jobs:
-          - gradle/test:
-              store_artifacts: build/reports/
-              test_command: myTests
-              test_results_path: build/test-results/
-executors:
-  default:
-    description: |
-      This default Docker image is highly cached on CircleCI and contains most necessary tools needed for Gradle related projects.
-    docker:
-    - image: cimg/openjdk:<<parameters.tag>>
-    parameters:
-      tag:
-        default: "13.0"
+    build_and_test:
+        description: Checkout, build, and test a Gradle project
+        usage:
+            orbs:
+                gradle: circleci/gradle@x.y
+            version: 2.1
+            workflows:
+                checkout-build-test:
+                    jobs:
+                        - gradle/test
+    custom_executor:
         description: |
-          Pick a specific cimg/openjdk image tag: https://hub.docker.com/r/cimg/openjdk/tags
-        type: string
+            How to override the default executor and supply your own custom Docker image to the gradle orb jobs.
+        usage:
+            executors:
+                my-executor:
+                    docker:
+                        - image: org/image:tag
+            orbs:
+                gradle: circleci/gradle@x.y
+            version: 2.1
+            workflows:
+                gradle_test:
+                    jobs:
+                        - gradle/test:
+                            executor: my-executor
+    custom_reports:
+        description: |
+            Publish custom results and reports.
+        usage:
+            orbs:
+                gradle: circleci/gradle@x.y
+            version: 2.1
+            workflows:
+                test-with-custom-reports:
+                    jobs:
+                        - gradle/test:
+                            store_artifacts: build/reports/
+                            test_command: myTests
+                            test_results_path: build/test-results/
+executors:
+    default:
+        description: |
+            This default Docker image is highly cached on CircleCI and contains most necessary tools needed for Gradle related projects.
+        docker:
+            - image: cimg/openjdk:<<parameters.tag>>
+        parameters:
+            tag:
+                default: "13.0"
+                description: |
+                    Pick a specific cimg/openjdk image tag: https://hub.docker.com/r/cimg/openjdk/tags
+                type: string
 jobs:
-  run:
-    description: |
-      Checkout and run task in a gradle project.
-    executor: << parameters.executor >>
-    parameters:
-      app_src_directory:
-        default: ""
-        description: Useful when the source of your maven project is nott in the root
-          directory of your git repo. Supply the name of the directory or relative
-          path of the directory containing your source code.
-        type: string
-      command:
-        default: build
-        type: string
-      executor:
-        default: default
-        description: The name of custom executor to use
-        type: executor
-      cache_key:
-        description: Specify a custom cache key (optional).
-        type: string
-        default: "default"
-    steps:
-    - checkout
-    - with_cache:
-        cache_key: << parameters.cache_key >>
+    run:
+        description: |
+            Checkout and run task in a gradle project.
+        executor: << parameters.executor >>
+        parameters:
+            app_src_directory:
+                default: ""
+                description: Useful when the source of your maven project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
+                type: string
+            cache_checksum_file:
+                default: build.gradle
+                description: File to use to generate the cache checksum, defaults to build.gradle.  For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+                type: string
+            cache_key:
+                default: v1
+                description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
+                type: string
+            command:
+                default: build
+                type: string
+            executor:
+                default: default
+                description: The name of custom executor to use
+                type: executor
         steps:
-        - run:
-            command: ./gradlew << parameters.command >>
-            name: Run Task
-            working_directory: << parameters.app_src_directory >>
-  test:
-    description: |
-      Checkout, build and test a Gradle project.
-    executor: << parameters.executor >>
-    parameters:
-      app_src_directory:
-        default: ""
-        description: Useful when the source of your maven project is nott in the root
-          directory of your git repo. Supply the name of the directory or relative
-          path of the directory containing your source code.
-        type: string
-      executor:
-        default: default
-        description: The name of custom executor to use
-        type: executor
-      reports_path:
-        default: build/reports/
-        description: Artifacts to be published
-        type: string
-      test_command:
-        default: test
-        type: string
-      test_results_path:
-        default: build/test-results/
-        description: Results to be published
-        type: string
-      cache_key:
-        description: Specify a custom cache key (optional).
-        type: string
-        default: "default"
-    steps:
-    - checkout
-    - with_cache:
-        cache_key: << parameters.cache_key >>
+            - checkout
+            - with_cache:
+                steps:
+                    - run:
+                        cache_checksum_file: << parameters.cache_checksum_file >>
+                        cache_key: << parameters.cache_key >>
+                        command: ./gradlew << parameters.command >>
+                        name: Run Task
+                        working_directory: << parameters.app_src_directory >>
+    test:
+        description: |
+            Checkout, build and test a Gradle project.
+        executor: << parameters.executor >>
+        parameters:
+            app_src_directory:
+                default: ""
+                description: Useful when the source of your maven project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
+                type: string
+            cache_checksum_file:
+                default: build.gradle
+                description: File to use to generate the cache checksum, defaults to build.gradle.  For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+                type: string
+            cache_key:
+                default: v1
+                description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
+                type: string
+            executor:
+                default: default
+                description: The name of custom executor to use
+                type: executor
+            reports_path:
+                default: build/reports/
+                description: Artifacts to be published
+                type: string
+            test_command:
+                default: test
+                type: string
+            test_results_path:
+                default: build/test-results/
+                description: Results to be published
+                type: string
         steps:
-        - run:
-            command: ./gradlew << parameters.test_command >>
-            name: Run Tests
-            working_directory: << parameters.app_src_directory >>
-    - collect_test_results:
-        reports_path: <<parameters.reports_path>>
-        test_results_path: <<parameters.test_results_path>>
+            - checkout
+            - with_cache:
+                steps:
+                    - run:
+                        cache_checksum_file: << parameters.cache_checksum_file >>
+                        cache_key: << parameters.cache_key >>
+                        command: ./gradlew << parameters.test_command >>
+                        name: Run Tests
+                        working_directory: << parameters.app_src_directory >>
+            - collect_test_results:
+                reports_path: <<parameters.reports_path>>
+                test_results_path: <<parameters.test_results_path>>
 version: 2.1
