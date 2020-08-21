@@ -122,7 +122,7 @@ commands:
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
                 echo "No new cache entry will be created, or gradle wrapper changed."
               elif [ -d ~/.gradle/caches ]; then
-                cat > /tmp/cleanup.gradle \<<<'endmsg'
+                cat > /tmp/cleanup.gradle \<< 'endmsg'
                 import static org.gradle.internal.serialize.BaseSerializerFactory.*
                 import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
                 import java.io.FileFilter
@@ -164,7 +164,7 @@ commands:
                 }
                 journal.close()
                 println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
-                endmsg
+              endmsg
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
