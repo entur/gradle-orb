@@ -122,7 +122,7 @@ commands:
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
                 echo "No new cache entry will be created, or gradle wrapper changed."
               elif [ -d ~/.gradle/caches ]; then
-                cat > /tmp/cleanup.gradle <<<'endmsg'
+                cat > /tmp/cleanup.gradle \<<<'endmsg'
                 import static org.gradle.internal.serialize.BaseSerializerFactory.*
                 import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
                 import java.io.FileFilter
@@ -171,7 +171,7 @@ commands:
                 # delete GC files, so that GC will always run
                 find ~/.gradle/caches -name gc.properties -delete
                 ./gradlew --stop
-                ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon 
+                ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
                 echo "Remaing folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
               else
