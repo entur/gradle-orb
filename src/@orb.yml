@@ -198,7 +198,6 @@ commands:
                         println 'No dependencies were touched, so assuming build did not execute and current cache content is still relevant'
                     }
                     journal.close()
-                    println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
                 endmsg
                     echo "A new cache entry will be created, deleting files not accessed during this build.."
                     ./gradlew --stop
