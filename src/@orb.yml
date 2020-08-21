@@ -158,7 +158,6 @@ commands:
                                     Long journalTimestamp = j.get(file);
                                     if(journalTimestamp != null && journalTimestamp < deadline) {
                                             long size = jarFiles[0].length();
-                                            System.out.println(file.path + ' -> ' + new Date(journalTimestamp) + ' to be deleted');
                                             j.remove(file)
                                             deleter.deleteRecursively(file);
                                             return size;
