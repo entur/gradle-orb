@@ -179,7 +179,8 @@ commands:
                     DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
                     File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
                     FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-")};
-                    File[] caches = cachesDirectory.listFiles(jarCacheFilter)
+                    File[] caches = cachesDirectory.listFiles(jarCacheFilter);
+                    File deadlineFile = new File(deadline);
                     boolean wasTouched = false;
                     for(File cache : caches) {
                         if(touched(cache, journal, deadlineFile.lastModified())) {
