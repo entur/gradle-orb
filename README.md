@@ -25,7 +25,8 @@ Disadvantages:
        * Alternatively resolve all submodule dependencies before compiling / testing
    *  Uses internal Gradle classes to delete unused dependencies. 
       * The cache job might break on a future version of the Gradle wrapper. If so, it is trivial to (temporarily) revert to the official Gradle orb.
-
+      * Parts of the cache will be cleared when the Gradle build files themselves contain errors, thus they must be downloaded again.
+      
 Bugs, feature suggestions and help requests can be filed with the [issue-tracker].
 
 ## Usage
