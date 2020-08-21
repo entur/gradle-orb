@@ -57,10 +57,6 @@ commands:
             improve build times for projects with many dependencies.
             The cache-key is generated using the commit hash from from any files named
             `build.gradle` that are present in the `working_directory`.
-            Based on the official CircleCI gradle orb version 2.2.0 and tested with
-            gradle wrapper 6.6, this uses internal gradle classes which might break
-            the build. If so, revert to the official orb (and post an issue at 
-            https://github.com/entur/gradle-orb).
         parameters:
             cache_checksum_file:
                 default: build.gradle
@@ -192,6 +188,12 @@ commands:
                 - ~/.gradle/wrapper
 description: |
     Simplify common tasks for building and testing Java projects using Gradle.
+    Based on the official CircleCI gradle orb version 2.2.0 and tested with
+    gradle wrapper 6.6, this orb takes advantange of the git history when
+    restoring caches, improving build time when build files are modified.
+    Note: This orb uses internal Gradle classes to delete unused dependencies. This might
+    break the build, if so revert to the official orb (and post an issue at
+    https://github.com/entur/gradle-orb).
 display:
     home_url: https://gradle.org/
     source_url: https://github.com/CircleCI-Public/gradle-orb
@@ -200,7 +202,7 @@ examples:
         description: Checkout, build, and test a Gradle project
         usage:
             orbs:
-                gradle: circleci/gradle@x.y
+                gradle: entur/gradle-orb@x.y
             version: 2.1
             workflows:
                 checkout-build-test:
@@ -215,7 +217,7 @@ examples:
                     docker:
                         - image: org/image:tag
             orbs:
-                gradle: circleci/gradle@x.y
+                gradle: entur/gradle-orb@x.y
             version: 2.1
             workflows:
                 gradle_test:
@@ -227,7 +229,7 @@ examples:
             Publish custom results and reports.
         usage:
             orbs:
-                gradle: circleci/gradle@x.y
+                gradle: entur/gradle-orb@x.y
             version: 2.1
             workflows:
                 test-with-custom-reports:
