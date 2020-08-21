@@ -60,7 +60,7 @@ commands:
         parameters:
             cache_checksum_file:
                 default: build.gradle
-                description: File to use to generate the cache checksum, defaults to build.gradle.  For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+                description: File to use to generate the cache checksum, defaults to build.gradle. For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
                 type: string
             cache_key:
                 description: Specify a custom cache key (optional).
@@ -169,14 +169,9 @@ commands:
                     println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
                 endmsg
                     echo "A new cache entry will be created, deleting files not accessed during this build.."
-                    echo "Folder sizes:"
-                    du -h --max-depth=1 ~/.gradle/caches
-                    # delete GC files, so that GC will always run
                     find ~/.gradle/caches -name gc.properties -delete
                     ./gradlew --stop
                     ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
-                    echo "Remaing folder sizes:"
-                    du -h --max-depth=1 ~/.gradle/caches
                 else
                     echo "A new cache entry will be created"
                 fi
@@ -191,6 +186,9 @@ description: |
     Based on the official CircleCI gradle orb version 2.2.0 and tested with
     gradle wrapper 6.6, this orb takes advantange of the git history when
     restoring caches, improving build time when build files are modified.
+    This orb works best for single-module projects, as it also saves the cache
+    on build fails (when all dependencies might not have been resolved for multi-module
+    projects). 
     Note: This orb uses internal Gradle classes to delete unused dependencies. This might
     break the build, if so revert to the official orb (and post an issue at
     https://github.com/entur/gradle-orb).
