@@ -131,6 +131,26 @@ commands:
                     import java.io.FileFilter
                     import org.gradle.internal.file.impl.DefaultDeleter
                     import java.nio.file.Files
+                    def touched(File file, BTreePersistentIndexedCache<File, Long> j, long deadline) {
+                    	FileFilter jarFilter = {f -> f.getName().endsWith(".jar")};
+                    	File[] jarFiles = file.listFiles(jarFilter);
+                    	if(jarFiles != null && jarFiles.length > 0) {
+                    		Long journalTimestamp = j.get(file);
+                    		if(journalTimestamp != null && journalTimestamp >= deadline && !jarFiles[0].getName().equals("cp_proj.jar")) {
+                    		    return true;
+                    		}
+                    	}
+                    	FileFilter dirFilter = {f -> f.isDirectory()};
+                    	File[] dirFiles = file.listFiles(dirFilter);
+                    	if(dirFiles != null && dirFiles.length > 0) {
+                    		for(File dirFile : dirFiles) {
+                    			if(touched(dirFile, j, deadline)) {
+                    			   return true;
+                    			}
+                    		}
+                    	}
+                    	return false;
+                    }
                     def iterate(File file, BTreePersistentIndexedCache<File, Long> j, long deadline, deleter) {
                             FileFilter jarFilter = {f -> f.getName().endsWith(".jar")};
                             File[] jarFiles = file.listFiles(jarFilter);
@@ -160,16 +180,26 @@ commands:
                     File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
                     FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-")};
                     File[] caches = cachesDirectory.listFiles(jarCacheFilter)
-                    File deadlineFile = new File(deadline);
-                    long deleted = 0;
+                    boolean wasTouched = false;
                     for(File cache : caches) {
+                        if(touched(cache, journal, deadlineFile.lastModified())) {
+                           wasTouched = true;
+                           break;
+                        }
+                    }
+                    if(wasTouched) {
+                        long deleted = 0;
+                        for(File cache : caches) {
                             deleted += iterate (cache, journal, deadlineFile.lastModified(), deleter)
+                        }
+                        println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
+                    } else {
+                        println 'No dependencies were touched, so assuming build did not execute and current cache content is still relevant'
                     }
                     journal.close()
                     println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
                 endmsg
                     echo "A new cache entry will be created, deleting files not accessed during this build.."
-                    find ~/.gradle/caches -name gc.properties -delete
                     ./gradlew --stop
                     ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
                 else
