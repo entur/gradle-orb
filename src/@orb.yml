@@ -188,7 +188,7 @@ description: |
     restoring caches, improving build time when build files are modified.
     This orb works best for single-module projects, as it also saves the cache
     on build fails (when all dependencies might not have been resolved for multi-module
-    projects). 
+    projects).
     Note: This orb uses internal Gradle classes to delete unused dependencies. This might
     break the build, if so revert to the official orb (and post an issue at
     https://github.com/entur/gradle-orb).
