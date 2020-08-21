@@ -117,33 +117,61 @@ commands:
         when: always
         command: |
               # will there be a new cache entry?
+              # this check fails when the gradle wrapper version changed, but if so
+              # the cache is new and does not need cleanup
               if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
-                echo "No new cache entry will be created"
+                echo "No new cache entry will be created, or gradle wrapper changed."
               elif [ -d ~/.gradle/caches ]; then
-                GRADLE_DIRECTORY="$HOME/.gradle"
-                GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-                GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
-                AGENT="$GRADLE_CACHE_DIRECTORY/agent.jar"
-                echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
-                echo "org.gradle.jvmargs=-javaagent:$AGENT" >> $GRADLE_PROPERTIES
-                # download agent
-                if [ -f "$AGENT" ]; then
-                    echo "$AGENT exists."
-                else
-                    echo "$AGENT does not exist, download."
-                    # wget -O - -o /dev/null https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/maven-metadata.xml | grep -Po '(?<=<version>)([0-9\.]+(-SNAPSHOT)?)' | sort --version-sort -r | head -n 1
-                    wget -O "$GRADLE_CACHE_DIRECTORY/agent.jar" https://oss.sonatype.org/content/repositories/snapshots/org/entur/circleci-tools/gradle/1.0.0-SNAPSHOT/gradle-1.0.0-20200817.140647-1.jar
-                fi
-
+                cat > /tmp/cleanup.gradle <<'endmsg'
+                import static org.gradle.internal.serialize.BaseSerializerFactory.*
+                import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
+                import java.io.FileFilter
+                import org.gradle.internal.file.impl.DefaultDeleter
+                import java.nio.file.Files
+                def iterate(File file, BTreePersistentIndexedCache<File, Long> j, long deadline, deleter) {
+                    FileFilter jarFilter = {f -> f.getName().endsWith(".jar")};
+                    File[] jarFiles = file.listFiles(jarFilter);
+                    if(jarFiles != null && jarFiles.length > 0) {
+                        Long journalTimestamp = j.get(file);
+                        if(journalTimestamp != null && journalTimestamp < deadline) {
+                            long size = jarFiles[0].length();
+                            System.out.println(file.path + ' -> ' + new Date(journalTimestamp) + ' to be deleted');
+                            j.remove(file)
+                            deleter.deleteRecursively(file);
+                            return size;
+                        }
+                    }
+                    long size = 0L;
+                    FileFilter dirFilter = {f -> f.isDirectory()};
+                    File[] dirFiles = file.listFiles(dirFilter);
+                    if(dirFiles != null && dirFiles.length > 0) {
+                        for(File dirFile : dirFiles) {
+                                size += iterate(dirFile, j, deadline, deleter);
+                        }
+                    }
+                    return size;
+                }
+                File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
+                BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
+                DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
+                File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
+                FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-")};
+                File[] caches = cachesDirectory.listFiles(jarCacheFilter)
+                File deadlineFile = new File(deadline);
+                long deleted = 0;
+                for(File cache : caches) {
+                    deleted += iterate (cache, journal, deadlineFile.lastModified(), deleter)
+                }
+                journal.close()
+                println 'Deleted ' + (int)(deleted / (1024*1024)) + 'MB of jars'
+                endmsg
                 echo "A new cache entry will be created, deleting files not accessed during this build.."
                 echo "Folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
                 # delete GC files, so that GC will always run
                 find ~/.gradle/caches -name gc.properties -delete
                 ./gradlew --stop
-                ./gradlew --no-daemon
-                # find ~/.gradle/caches/modules-*/files-*.* -type f -not -anewer /tmp/git_last_hash -delete
-                # find ~/.gradle/caches/modules-*/files-*.* -type d -empty -delete
+                ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon 
                 echo "Remaing folder sizes:"
                 du -h --max-depth=1 ~/.gradle/caches
               else
