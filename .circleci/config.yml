@@ -27,7 +27,7 @@ workflows:
             branches:
               ignore: master
           orb-path: src/@orb.yml
-          orb-ref: entur/gradle@dev:$CIRCLE_BRANCH
+          orb-ref: entur/gradle-orb@dev:$CIRCLE_BRANCH
       - orb-tools/increment:
           name: release
           context: orb-publishing
@@ -35,6 +35,6 @@ workflows:
             branches:
               only: master
           orb-path: src/@orb.yml
-          orb-ref: entur/gradle
+          orb-ref: entur/gradle-orb
           requires:
             - lint
