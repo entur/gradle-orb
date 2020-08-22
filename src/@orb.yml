@@ -122,12 +122,14 @@ commands:
             name: Perform cache cleanup.
             when: on_success
             command: |
-                # will there be a new cache entry?
-                # this check fails when the gradle wrapper version changed, but if so
-                # the cache is new and does not need cleanup
-                if cmp -s "/tmp/git_last_previous_hash" "/tmp/git_last_hash" ; then
-                    echo "No new cache entry will be created, or gradle wrapper changed."
-                elif [ -d ~/.gradle/caches ]; then
+                echo "success" > /tmp/build_status
+                # should the cache be cleaned?
+                if [ -f ~/.gradle/caches/last_success_hash ]; then
+                  if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
+                    echo "Cache does not need cleanup"
+                  else
+                    # first is the first successful build with this particular set of build files
+                    echo "Clean up cache"
                     cat > /tmp/cleanup.gradle \<< 'endmsg'
                     import static org.gradle.internal.serialize.BaseSerializerFactory.*
                     import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
@@ -204,23 +206,22 @@ commands:
                     echo "A new cache entry will be created, deleting files not accessed during this build.."
                     ./gradlew --stop
                     ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
-                else
-                    echo "A new cache entry will be created"
                 fi
         - run:
-            name: Set cache flags for a successful build
+            name: Set cache flags for a successful build.
             when: on_success
             command: |
                 echo "success" > /tmp/build_status
                 cp /tmp/git_last_hash ~/.gradle/caches/last_success_hash
         - run:
-            name: Set cache flags for a failed build
+            name: Set cache flags for a failed build.
             when: on_fail
             command: |
                 # if the build has previously run successfully for this hash, we don't want to save another cache (which then would never be used, and would consume time and storage space)
                 if [ -f ~/.gradle/caches/last_success_hash ]; then
-                  if cmp -s ~/.gradle/caches/last_success_hash "/tmp/git_last_hash" ; then
+                  if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
                     echo "Cache was saved after a previously successful build for the latest build file changes, creating another cache entry for the failed state is unnecessary."
+                    # emulate successful build
                     echo "success" > /tmp/build_status
                   else
                     echo "failure" > /tmp/build_status
