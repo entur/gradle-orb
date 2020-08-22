@@ -44,6 +44,8 @@ This orb uses a few internal Gradle classes to delete unused dependencies from t
 ## Caching strategy
 The caching strategy tries to handle both successful and failing build as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
 
+Permutations: 
+
  * Git commit
    * build files
    * source files (excluding build files)
@@ -51,7 +53,14 @@ The caching strategy tries to handle both successful and failing build as good a
    * Success
    * Failure
 
-In general, ununsed dependencies are not purged from the cache untill it builds successfully.
+The cache will be saved in two states: 
+
+ * a _success_ cache is saved on the first successful build after the build files has been updated.
+ * a _failure cache_ is saved on the first failed build after the build files has been updated, if a _success_ cache does not already exists.
+
+So in other words, when the build files are updated, a cache is always created. Ununsed dependencies are purged before saving the _success_ cache.
+
+If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is wiped.
 
 ### Single-commit use-cases:
 
@@ -72,6 +81,12 @@ In general, ununsed dependencies are not purged from the cache untill it builds 
 | 3. | Source files  | Success  | ___failure_ cache #A__ restored, ununsed dependencies purged, new ___success_ cache #B__  created |
 | 4. | Source files  | Success  | ___success_ cache #B__ restored, no new cache created |
 
+##### Bumping dependencies, break unit tests later
+
+| # | Commit | Build status | Expected outcome |
+| ------------- | ------------- | -- | -- |
+| 1. | Build files  | Success  | Previous _success_ or _fail_ cache restored, new ___success_ cache C__ created |
+| 2. | Source files  | Failure  | ___success_ cache #C__ restored, no new cache created |
 
 ## Troubleshooting
 If the cache is corrupted, update the cache key, so that the previous state is not restored - as in the official Gradle orb.
