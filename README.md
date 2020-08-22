@@ -42,7 +42,7 @@ This orb uses a few internal Gradle classes to delete unused dependencies from t
 | 0.0.1  | 2.2.0  | 6.6 |
 
 ## Caching strategy
-The caching strategy tries to handle both successful and failing build as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
+The caching strategy tries to handle both successful and failing builds as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
 
 Permutations: 
 
@@ -56,27 +56,27 @@ Permutations:
 The cache will be saved in two states: 
 
  * a _success_ cache is saved on the first successful build after the build files has been updated.
- * a _failure cache_ is saved on the first failed build after the build files has been updated, if a _success_ cache does not already exists.
+ * a _failure cache_ is saved on the first failed build after the build files has been updated, if a corresponding _success_ cache does not already exists.
 
 So in other words, when the build files are updated, a cache is always created. Ununsed dependencies are purged before saving the _success_ cache.
 
 If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is wiped.
 
-### Single-commit use-cases:
+### Single-commit use-cases
 
 | Commit  | Build status | Expected outcome |
 | ------------- | ------------- | -- |
-| Source files  | Success  | Previous _success_ or _fail_ cache restored, no new cache created |
-| Source files  | Failure  | Previous _success_ or _fail_ cache restored, no new cache created |
-| Build files  | Success  | Previous _success_ or _fail_ cache restored, ununsed dependencies purged, new _success_ cache created |
-| Build files, source files  | Success  | Previous _success_ or _fail_ cache restored, ununsed dependencies purged, new _success_ cache created |
+| Source files  | Success  | Previous _success_ or _failure_ cache restored, no new cache created |
+| Source files  | Failure  | Previous _success_ or _failure_ cache restored, no new cache created |
+| Build files  | Success  | Previous _success_ or _failure_ cache restored, ununsed dependencies purged, new _success_ cache created |
+| Build files, source files  | Success  | Previous _success_ or _failure_ cache restored, ununsed dependencies purged, new _success_ cache created |
 
 ### Multi-commit use-cases
 ##### Bumping dependencies breaks compilation, fixes.
 
 | # | Commit | Build status | Expected outcome |
 | ------------- | ------------- | -- | -- |
-| 1. | Build files  | Failure  | Previous _success_ or _fail_ cache restored, new ___failure_ cache A__ created |
+| 1. | Build files  | Failure  | Previous _success_ or _failure_ cache restored, new ___failure_ cache A__ created |
 | 2. | Source files  | Failure  | ___failure_ cache #A__ restored, no new cache created |
 | 3. | Source files  | Success  | ___failure_ cache #A__ restored, ununsed dependencies purged, new ___success_ cache #B__  created |
 | 4. | Source files  | Success  | ___success_ cache #B__ restored, no new cache created |
@@ -85,7 +85,7 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 
 | # | Commit | Build status | Expected outcome |
 | ------------- | ------------- | -- | -- |
-| 1. | Build files  | Success  | Previous _success_ or _fail_ cache restored, new ___success_ cache C__ created |
+| 1. | Build files  | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache C__ created |
 | 2. | Source files  | Failure  | ___success_ cache #C__ restored, no new cache created |
 
 ## Troubleshooting
