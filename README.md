@@ -1,4 +1,3 @@
-
 # gradle-orb
 This orb clones the official [CircleCI Gradle] orb interface, but applies a different caching strategy. 
 
@@ -23,8 +22,6 @@ Disadvantages:
       * The cache job might break on a future version of the Gradle wrapper. If so, it is trivial to (temporarily) revert to the official Gradle orb.
       
 Bugs, feature suggestions and help requests can be filed with the [issue-tracker].
-
-> work in progress
 
 ## Usage
 Import the orb
