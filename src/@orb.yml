@@ -95,7 +95,7 @@ commands:
                 echo "success" > /tmp/build_status_success
                 echo "failure" > /tmp/build_status_failure
         - restore_cache:
-            keys: 
+            keys:
               - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
               - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
         - run:
@@ -226,8 +226,8 @@ commands:
                     echo "failure" > /tmp/build_status
                   fi
                 else
-                    echo "failure" > /tmp/build_status
-                fi                
+                  echo "failure" > /tmp/build_status
+                fi
         - save_cache:
             key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status" }}
             when: always
