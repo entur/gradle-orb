@@ -92,9 +92,12 @@ commands:
                 fi
                 echo "$lastPreviousHash" > /tmp/git_last_previous_hash
                 echo "$lastHash" > /tmp/git_last_hash
-
+                echo "success" > /tmp/build_status_success
+                echo "failure" > /tmp/build_status_failure
         - restore_cache:
-            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}
+            keys: 
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
         - run:
             name: Prepare cache cleanup.
             command: |
@@ -117,7 +120,7 @@ commands:
         - steps: << parameters.steps >>
         - run:
             name: Perform cache cleanup.
-            when: always
+            when: on_success
             command: |
                 # will there be a new cache entry?
                 # this check fails when the gradle wrapper version changed, but if so
@@ -204,8 +207,29 @@ commands:
                 else
                     echo "A new cache entry will be created"
                 fi
+        - run:
+            name: Handle cache for a successful build
+            when: on_success
+            command: |
+                echo "success" > /tmp/build_status
+                cp /tmp/git_last_hash ~/.gradle/caches/last_success_hash
+        - run:
+            name: Handle cache for a failed build
+            when: on_failure
+            command: |
+                # if the build has previously run successfully for this hash, we don't want to save another cache (which then would never be used, and would consume time and storage space)
+                if [ -f ~/.gradle/caches/last_success_hash ]; then
+                  if cmp -s ~/.gradle/caches/last_success_hash "/tmp/git_last_hash" ; then
+                    echo "Cache was saved after a previously successful build for the latest build file changes, creating another cache entry for the failed state is unnecessary."
+                    echo "success" > /tmp/build_status
+                  else
+                    echo "failure" > /tmp/build_status
+                  fi
+                else
+                    echo "failure" > /tmp/build_status
+                fi                
         - save_cache:
-            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}
+            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status" }}
             when: always
             paths:
                 - ~/.gradle/caches
