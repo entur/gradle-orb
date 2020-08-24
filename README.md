@@ -55,7 +55,7 @@ Permutations:
 The cache will be saved in two states: 
 
  * a _success_ cache is saved on the first successful build after the build files has been updated.
- * a _failure cache_ is saved on the first failed build after the build files has been updated, if a corresponding _success_ cache does not already exists.
+ * a _failure_ cache is saved on the first failed build after the build files has been updated, if a corresponding _success_ cache does not already exists.
 
 So in other words, when the build files are updated, a cache is always created. Ununsed dependencies are purged before saving the _success_ cache.
 
