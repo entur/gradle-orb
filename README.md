@@ -39,6 +39,7 @@ This orb uses a few internal Gradle classes to delete unused dependencies from t
 | Orb version  | Official Orb Version | Gradle version(s) |
 | ------------- | ------------- | -- |
 | 0.0.1  | 2.2.0  | 6.6 |
+| 0.0.4  | 2.2.0  | 6.6, 6.6.1 |
 
 ## Caching strategy
 The caching strategy tries to handle both successful and failing builds as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
@@ -63,12 +64,21 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 
 ### Single-commit use-cases
 
+##### Single commit, single-step workflow
+
 | Commit  | Build status | Expected outcome |
 | ------------- | ------------- | -- |
 | Source files  | Success  | Previous _success_ or _failure_ cache restored, no new cache created |
 | Source files  | Failure  | Previous _success_ or _failure_ cache restored, no new cache created |
 | Build files  | Success  | Previous _success_ or _failure_ cache restored, ununsed dependencies purged, new _success_ cache created |
 | Build files, source files  | Success  | Previous _success_ or _failure_ cache restored, ununsed dependencies purged, new _success_ cache created |
+
+##### Single commit, multi-step workflow
+
+| # | Commit | Step | Build status | Expected outcome |
+| ------------- | -- |------------- | -- | -- |
+| 1. | Build files  | Build without testing | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache D__ created |
+|  |   |  Build with testing | Success | ___success_ cache #D__ restored, no new cache created |
 
 ### Multi-commit use-cases
 ##### Bumping dependencies breaks compilation, fixes.
@@ -86,6 +96,7 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 | ------------- | ------------- | -- | -- |
 | 1. | Build files  | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache C__ created |
 | 2. | Source files  | Failure  | ___success_ cache #C__ restored, no new cache created |
+
 
 ## Troubleshooting
 If the cache is corrupted, update the cache key, so that the previous state is not restored - as in the official Gradle orb.
