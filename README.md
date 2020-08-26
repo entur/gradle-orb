@@ -75,10 +75,10 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 
 ##### Single commit, multi-step workflow
 
-| # | Commit | Step | Build status | Expected outcome |
-| ------------- | -- |------------- | -- | -- |
-| 1. | Build files  | Build without testing | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache D__ created |
-|  |   |  Build with testing | Success | ___success_ cache #D__ restored, no new cache created |
+| # | Commit | Step | Depends on | Build status | Expected outcome |
+| ------------- | -- | -- |------------- | -- | -- |
+| 1. | Build files  | STEP1 | - | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache D__ created |
+|  |   | STEP2  |  STEP1 | Success | ___success_ cache #D__ restored, no new cache created |
 
 ### Multi-commit use-cases
 ##### Bumping dependencies breaks compilation, fixes.
