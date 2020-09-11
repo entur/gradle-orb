@@ -204,8 +204,8 @@ commands:
                         }
                         return deleted;
                     }
-                    tasks.register("deleteOutdatedCacheEntries") { 
-                        doLast { 
+                    tasks.register("deleteOutdatedCacheEntries") {
+                        doLast {
                             File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
                             BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
                             DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
