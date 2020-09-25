@@ -192,14 +192,14 @@ commands:
                         File[] dirFiles = parentDirectory.listFiles(dirFilter);
                         if(dirFiles != null && dirFiles.length > 0) {
                             for(File dirFile : dirFiles) {
-                                if(touched(dirFile, j, deadline, fileFilter)) {
+                                if(isDependenciesTouched(dirFile, j, deadline, fileFilter)) {
                                     return true;
                                 }
                             }
                         }
                         return false;
                     }
-                    def iterate(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter, FileFilter fileFilter) {
+                    def deleteFromDependencies(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter, FileFilter fileFilter) {
                         Long journalTimestamp = j.get(parentDirectory);
                         if(journalTimestamp != null) {
                             if(journalTimestamp < deadline) {
@@ -224,7 +224,7 @@ commands:
                         File[] dirFiles = parentDirectory.listFiles(dirFilter);
                         if(dirFiles != null && dirFiles.length > 0) {
                             for(File dirFile : dirFiles) {
-                                deleted += iterate(dirFile, j, deadline, deleter, fileFilter);
+                                deleted += deleteFromDependencies(dirFile, j, deadline, deleter, fileFilter);
                             }
                         }
                         return deleted;
@@ -295,7 +295,7 @@ commands:
                                 if(wasDependenciesTouched) {
                                     FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
                                     for(File cache : caches) {
-                                        deleted += iterate (cache, journal, lastModified, deleter, fileFilter)
+                                        deleted += deleteFromDependencies (cache, journal, lastModified, deleter, fileFilter)
                                     }
                                 }
                                 long deletedFromBuildCache = 0;
