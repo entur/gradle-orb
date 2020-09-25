@@ -154,7 +154,7 @@ commands:
                         }
                         return false;
                     }
-                    def touched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, FileFilter fileFilter) {
+                    def isDependenciesTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, FileFilter fileFilter) {
                         Long journalTimestamp = j.get(parentDirectory);
                         if(journalTimestamp != null) {
                             if(journalTimestamp >= deadline) {
@@ -206,6 +206,39 @@ commands:
                         }
                         return deleted;
                     }
+                    def isBuildCacheTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline) {
+                        FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+                        File[] fileFiles = parentDirectory.listFiles(f);
+                        if(fileFiles != null && fileFiles.length > 0) {
+                            for(File fileFile : fileFiles) {
+                                Long journalTimestamp = j.get(fileFile);
+                                if(journalTimestamp != null) {
+                                    if(journalTimestamp >= deadline) {
+                                        return true
+                                    }
+                                }
+                            }                        
+                        }
+                        return false;
+                    }
+                    def deleteFromBuildCache(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter) {
+                        long deleted = 0L;
+                        FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+                        File[] fileFiles = parentDirectory.listFiles(f);
+                        if(fileFiles != null && fileFiles.length > 0) {
+                            for(File fileFile : fileFiles) {
+                                Long journalTimestamp = j.get(fileFile);
+                                if(journalTimestamp != null) {
+                                    if(journalTimestamp < deadline) {
+                                        j.remove(fileFile)
+                                        fileFile.delete()
+                                        deleted++
+                                    }
+                                }
+                            }
+                        }
+                        return deleted;
+                    }
                     tasks.register("deleteOutdatedCacheEntries") {
                         doLast {
                             File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
@@ -216,23 +249,41 @@ commands:
                             File[] caches = cachesDirectory.listFiles(jarCacheFilter);
                             File deadlineFile = new File(deadline);
                             long lastModified = deadlineFile.lastModified();
-                            boolean wasTouched = false;
+                            boolean wasBuildCacheTouched = false;
                             FileFilter touchedFileFilter = {f -> (f.getName().endsWith(".jar") && !f.getName().equals("cp_proj.jar") && !f.getName().equals("proj.jar") && !f.getName().equals("cp_settings.jar") && !f.getName().equals("settings.jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
                             for(File cache : caches) {
-                                if(touched(cache, journal, lastModified, touchedFileFilter)) {
-                                    wasTouched = true;
+                                if(isDependenciesTouched(cache, journal, lastModified, touchedFileFilter)) {
+                                    wasBuildCacheTouched = true;
                                     break;
                                 }
                             }
-                            if(wasTouched) {
-                                long deleted = 0;
-                                FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
-                                for(File cache : caches) {
-                                    deleted += iterate (cache, journal, lastModified, deleter, fileFilter)
+                            boolean wasBuildCacheTouched = false;
+                            FileFilter buildCacheFilter = {f -> f.getName().startsWith("build-cache-") };
+                            File[] buildCaches = cachesDirectory.listFiles(buildCacheFilter);
+                            for(File cache : buildCaches) {
+                                if(isBuildCacheTouched(cache, journal, lastModified)) {
+                                    wasBuildCacheTouched = true;
+                                    break;
                                 }
-                                println 'Deleted ' + deleted + ' cache entries'
+                            }
+                            if(wasBuildCacheTouched || wasBuildCacheTouched) {
+                                // so assuming that a build has been run
+                                long deleted = 0;
+                                if(wasBuildCacheTouched) {
+                                    FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
+                                    for(File cache : caches) {
+                                        deleted += iterate (cache, journal, lastModified, deleter, fileFilter)
+                                    }
+                                }
+                                long deletedFromBuildCache = 0;
+                                if(wasBuildCacheTouched) {
+                                    for(File cache : buildCaches) {
+                                        deletedFromBuildCache += deleteFromBuildCache(cache, journal, lastModified, deleter)
+                                    }
+                                }
+                                println 'Deleted ' + deleted + ' cache entries and ' + deletedFromBuildCache + ' from build cache'
                             } else {
-                                println 'No dependencies were touched, so assuming build did not execute and current cache content is still relevant'
+                                println 'No dependencies or caches were touched, so assuming build did not execute and current cache content is still relevant'
                             }
                             journal.close()
                         }
