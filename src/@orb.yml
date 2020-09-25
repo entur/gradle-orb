@@ -272,11 +272,11 @@ commands:
                             File[] caches = cachesDirectory.listFiles(jarCacheFilter);
                             File deadlineFile = new File(deadline);
                             long lastModified = deadlineFile.lastModified();
-                            boolean wasBuildCacheTouched = false;
+                            boolean wasDependenciesTouched = false;
                             FileFilter touchedFileFilter = {f -> (f.getName().endsWith(".jar") && !f.getName().equals("cp_proj.jar") && !f.getName().equals("proj.jar") && !f.getName().equals("cp_settings.jar") && !f.getName().equals("settings.jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
                             for(File cache : caches) {
                                 if(isDependenciesTouched(cache, journal, lastModified, touchedFileFilter)) {
-                                    wasBuildCacheTouched = true;
+                                    wasDependenciesTouched = true;
                                     break;
                                 }
                             }
@@ -289,10 +289,10 @@ commands:
                                     break;
                                 }
                             }
-                            if(wasBuildCacheTouched || wasBuildCacheTouched) {
+                            if(wasDependenciesTouched || wasBuildCacheTouched) {
                                 // so assuming that a build has been run
                                 long deleted = 0;
-                                if(wasBuildCacheTouched) {
+                                if(wasDependenciesTouched) {
                                     FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
                                     for(File cache : caches) {
                                         deleted += iterate (cache, journal, lastModified, deleter, fileFilter)
