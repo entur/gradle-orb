@@ -217,7 +217,7 @@ commands:
                                         return true
                                     }
                                 }
-                            }                        
+                            }
                         }
                         return false;
                     }
