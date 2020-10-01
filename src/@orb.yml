@@ -96,7 +96,7 @@ commands:
                     fi
                   fi
                 else
-                  echo "Build files did update last commit 2"
+                  echo "Build files did update last commit"
                 fi
                 if [ -z "$lastPreviousFirstHash" ]; then
                   lastPreviousFirstHash=$lastHash
@@ -155,7 +155,7 @@ commands:
                     exit 0
                   fi
                 fi
-                # first is the first successful build with this particular set of build files
+                # this is the first successful build with this particular set of build files
                 echo "Clean up cache"
                 cat > /tmp/cleanup.gradle \<< 'endmsg'
                 import static org.gradle.internal.serialize.BaseSerializerFactory.*
