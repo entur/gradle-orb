@@ -419,6 +419,10 @@ jobs:
                 default: v1
                 description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
                 type: string
+            gradle_user_home:
+                description: Specify a custom user home directory
+                type: string
+                default: "~/.gradle"
             command:
                 default: build
                 type: string
@@ -429,10 +433,11 @@ jobs:
         steps:
             - checkout
             - with_cache:
+                cache_checksum_file: << parameters.cache_checksum_file >>
+                cache_key: << parameters.cache_key >>
+                gradle_user_home: << parameters.gradle_user_home >>
                 steps:
                     - run:
-                        cache_checksum_file: << parameters.cache_checksum_file >>
-                        cache_key: << parameters.cache_key >>
                         command: ./gradlew << parameters.command >>
                         name: Run Task
                         working_directory: << parameters.app_src_directory >>
@@ -453,6 +458,10 @@ jobs:
                 default: v1
                 description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
                 type: string
+            gradle_user_home:
+                description: Specify a custom user home directory
+                type: string
+                default: "~/.gradle"
             executor:
                 default: default
                 description: The name of custom executor to use
@@ -471,10 +480,11 @@ jobs:
         steps:
             - checkout
             - with_cache:
+                cache_checksum_file: << parameters.cache_checksum_file >>
+                cache_key: << parameters.cache_key >>
+                gradle_user_home: << parameters.gradle_user_home >>
                 steps:
                     - run:
-                        cache_checksum_file: << parameters.cache_checksum_file >>
-                        cache_key: << parameters.cache_key >>
                         command: ./gradlew << parameters.test_command >>
                         name: Run Tests
                         working_directory: << parameters.app_src_directory >>
