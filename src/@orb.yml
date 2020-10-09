@@ -66,6 +66,10 @@ commands:
                 description: Specify a custom cache key (optional).
                 type: string
                 default: v1
+            gradle_user_home:
+                description: Specify a custom user home directory
+                type: string
+                default: "~/.gradle"
             steps:
                 type: steps
         steps:
@@ -127,20 +131,8 @@ commands:
             name: Prepare cache cleanup.
             command: |
                 touch /tmp/git_last_hash
-                GRADLE_DIRECTORY="$HOME/.gradle"
-                if [[ ! -e $GRADLE_DIRECTORY ]]; then
-                  mkdir -p $GRADLE_DIRECTORY
-                fi
-                GRADLE_CACHE_DIRECTORY="$HOME/.gradle/caches"
-                if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
-                  mkdir -p $GRADLE_CACHE_DIRECTORY
-                fi
-                echo "Folder sizes:"
-                du -h --max-depth=1 ~/.gradle/caches
                 if cmp -s "/tmp/git_last_previous_first_hash" "/tmp/git_last_hash" ; then
                   echo "No new cache entry will be created"
-                  GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-                  echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
                 fi
         - steps: << parameters.steps >>
         - run:
@@ -149,8 +141,8 @@ commands:
             command: |
                 echo "success" > /tmp/build_status
                 # should the cache be cleaned?
-                if [ -f ~/.gradle/caches/last_success_hash ]; then
-                  if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
+                if [ -f << parameters.gradle_user_home >>/caches/last_success_hash ]; then
+                  if cmp -s << parameters.gradle_user_home >>/caches/last_success_hash /tmp/git_last_hash ; then
                     echo "Cache does not need cleanup"
                     exit 0
                   fi
@@ -322,14 +314,14 @@ commands:
             when: on_success
             command: |
                 echo "success" > /tmp/build_status
-                cp /tmp/git_last_hash ~/.gradle/caches/last_success_hash
+                cp /tmp/git_last_hash << parameters.gradle_user_home >>/caches/last_success_hash
         - run:
             name: Set cache flags for a failed build.
             when: on_fail
             command: |
                 # if the build has previously run successfully for this hash, we don't want to save another cache (which then would never be used, and would consume time and storage space)
-                if [ -f ~/.gradle/caches/last_success_hash ]; then
-                  if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
+                if [ -f << parameters.gradle_user_home >>/caches/last_success_hash ]; then
+                  if cmp -s << parameters.gradle_user_home >>/caches/last_success_hash /tmp/git_last_hash ; then
                     echo "Cache was saved after a previously successful build for the latest build file changes, creating another cache entry for the failed state is unnecessary."
                     # emulate successful build
                     echo "success" > /tmp/build_status
@@ -343,8 +335,8 @@ commands:
             key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status" }}
             when: always
             paths:
-                - ~/.gradle/caches
-                - ~/.gradle/wrapper
+                - << parameters.gradle_user_home >>/caches
+                - << parameters.gradle_user_home >>/wrapper
 description: |
     Simplify common tasks for building and testing Java projects using Gradle.
     Based on the official CircleCI gradle orb version 2.2.0 and tested with
