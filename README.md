@@ -39,7 +39,8 @@ This orb uses a few internal Gradle classes to delete unused dependencies from t
 | Orb version  | Official Orb Version | Gradle version(s) |
 | ------------- | ------------- | -- |
 | 0.0.1  | 2.2.0  | 6.6 |
-| 0.0.4  | 2.2.0  | 6.6, 6.6.1 |
+| 0.0.4  | 2.2.0  | 6.6, 6.6.1, (possibly 6.7.0) |
+| 0.0.5  | 2.2.0  | 6.6, 6.6.1, 6.7.0 |
 
 ## Caching strategy
 The caching strategy tries to handle both successful and failing builds as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
