@@ -375,6 +375,9 @@ examples:
                 my-executor:
                     docker:
                         - image: org/image:tag
+                          auth:
+                            username: $DOCKERHUB_LOGIN
+                            password: $DOCKERHUB_PASSWORD
             orbs:
                 gradle: entur/gradle-orb@x.y
             version: 2.1
@@ -403,6 +406,9 @@ executors:
             This default Docker image is highly cached on CircleCI and contains most necessary tools needed for Gradle related projects.
         docker:
             - image: cimg/openjdk:<<parameters.tag>>
+              auth:
+                username: $DOCKERHUB_LOGIN
+                password: $DOCKERHUB_PASSWORD
         parameters:
             tag:
                 default: "13.0"
@@ -413,6 +419,7 @@ jobs:
     run:
         description: |
             Checkout and run task in a gradle project.
+             NB! Add $DOCKERHUB_LOGIN and $DOCKERHUB_PASSWORD credentials in your context to log in to Docker hub
         executor: << parameters.executor >>
         parameters:
             app_src_directory:
@@ -447,6 +454,7 @@ jobs:
     test:
         description: |
             Checkout, build and test a Gradle project.
+             NB! Add $DOCKERHUB_LOGIN and $DOCKERHUB_PASSWORD credentials in your context to log in to Docker hub
         executor: << parameters.executor >>
         parameters:
             app_src_directory:
