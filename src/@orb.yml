@@ -405,7 +405,7 @@ executors:
         description: |
             This default Docker image is highly cached on CircleCI and contains most necessary tools needed for Gradle related projects.
         docker:
-            - image: cimg/openjdk:<<parameters.tag>>
+            - image: entur/kong:<<parameters.tag>>
               auth:
                 username: $DOCKERHUB_LOGIN
                 password: $DOCKERHUB_PASSWORD
