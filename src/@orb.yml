@@ -411,7 +411,7 @@ executors:
                 password: $DOCKERHUB_PASSWORD
         parameters:
             tag:
-                default: "13.0"
+                default: "latest"
                 description: |
                     Pick a specific cimg/openjdk image tag: https://hub.docker.com/r/cimg/openjdk/tags
                 type: string
