@@ -32,6 +32,7 @@ orbs:
 ```
 
 where `x` is the latest version from [the orb registry](https://circleci.com/orbs/registry/orb/entur/gradle-orb).
+NB! Add $DOCKERHUB_LOGIN and $DOCKERHUB_PASSWORD credentials in your context to log in to Docker hub
 
 ## Compatibility
 This orb uses a few internal Gradle classes to delete unused dependencies from the cache, thus keeping it from growing too big and consequently consuming additional time for cache persist / restore. 
