@@ -391,7 +391,7 @@ examples:
             Publish custom results and reports.
         usage:
             orbs:
-                gradle: entur/gradle-orb@x.y
+                gradle: entur/gradle-orb@x.y #just for test
             version: 2.1
             workflows:
                 test-with-custom-reports:
