@@ -157,6 +157,7 @@ commands:
                 fi
                 # this is the first successful build with this particular set of build files
                 echo "Clean up cache"
+                touch /tmp/settings.gradle
                 cat > /tmp/cleanup.gradle \<< 'endmsg'
                 import static org.gradle.internal.serialize.BaseSerializerFactory.*
                 import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
