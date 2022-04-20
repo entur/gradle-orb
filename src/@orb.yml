@@ -66,6 +66,10 @@ commands:
                 description: Specify a custom cache key (optional).
                 type: string
                 default: v1
+            cache_key_include_circleci_config:
+                description: Include the CircleCI build file .circleci/config.yml in the cache key. If true, this usually means clearing the cache on build updates.
+                type: boolean
+                default: false
             steps:
                 type: steps
         steps:
@@ -113,16 +117,22 @@ commands:
                 echo "$lastHash" > /tmp/git_last_hash
                 echo "success" > /tmp/build_status_success
                 echo "failure" > /tmp/build_status_failure
+                if [ "true" == "<< parameters.cache_key_include_circleci_config >>" ]; then
+                  cp .circleci/config.yml /tmp/circleci_config.yml
+                  echo "Include .circleci/config.yml in the cache key"
+                else
+                  echo "" > /tmp/circleci_config.yml
+                fi
         - restore_cache:
             keys:
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_success" }}
-              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_success" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_success" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_success" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_success" }}
+              - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status_failure" }}
         - run:
             name: Prepare cache cleanup.
             command: |
@@ -341,7 +351,7 @@ commands:
                   echo "failure" > /tmp/build_status
                 fi
         - save_cache:
-            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum ".circleci/config.yml" }}-{{ checksum "/tmp/build_status" }}
+            key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/circleci_config.yml" }}-{{ checksum "/tmp/build_status" }}
             when: always
             paths:
                 - ~/.gradle/caches
@@ -442,13 +452,18 @@ jobs:
                 default: default
                 description: The name of custom executor to use
                 type: executor
+            cache_key_include_circleci_config:
+                description: Include the CircleCI build file .circleci/config.yml in the cache key. If true, this usually means clearing the cache on build updates.
+                type: boolean
+                default: false
         steps:
             - checkout
             - with_cache:
+                cache_checksum_file: << parameters.cache_checksum_file >>
+                cache_key: << parameters.cache_key >>
+                cache_key_include_circleci_config: << parameters.cache_key_include_circleci_config >>
                 steps:
                     - run:
-                        cache_checksum_file: << parameters.cache_checksum_file >>
-                        cache_key: << parameters.cache_key >>
                         command: ./gradlew << parameters.command >>
                         name: Run Task
                         working_directory: << parameters.app_src_directory >>
@@ -485,13 +500,18 @@ jobs:
                 default: build/test-results/
                 description: Results to be published
                 type: string
+            cache_key_include_circleci_config:
+                description: Include the CircleCI build file .circleci/config.yml in the cache key. If true, this usually means clearing the cache on build updates.
+                type: boolean
+                default: false
         steps:
             - checkout
             - with_cache:
+                cache_checksum_file: << parameters.cache_checksum_file >>
+                cache_key: << parameters.cache_key >>
+                cache_key_include_circleci_config: << parameters.cache_key_include_circleci_config >>
                 steps:
                     - run:
-                        cache_checksum_file: << parameters.cache_checksum_file >>
-                        cache_key: << parameters.cache_key >>
                         command: ./gradlew << parameters.test_command >>
                         name: Run Tests
                         working_directory: << parameters.app_src_directory >>
