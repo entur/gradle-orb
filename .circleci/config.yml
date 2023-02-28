@@ -22,7 +22,7 @@ workflows:
       - lint
       - orb-tools/publish:
           name: publish
-          context: global
+          context: orb-publishing
           filters:
             branches:
               ignore: master
