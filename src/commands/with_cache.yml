@@ -1,0 +1,331 @@
+description: |
+  Run a set of steps with gradle dependencies cached.
+  This command will first restore a cache of gradle dependencies, if one was
+  saved by a previous build. The provided `steps` will then be executed, and
+  if successful, then a fresh cache will be saved, if required.
+  The contents of the `~/.gradle` directory is cached, which will substantially
+  improve build times for projects with many dependencies.
+  The cache-key is generated from any files named `build.gradle` that are
+  present in the `working_directory`.
+parameters:
+  steps:
+    type: steps
+  cache_key:
+    description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
+    type: string
+    default: "v1"
+  deps_checksum_file:
+    description: File to use to generate the cache checksum for dependencies. Defaults to build.gradle. For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+    type: string
+    default: "build.gradle"
+  wrapper_checksum_file:
+    description: File to use to generate the cache checksum for the gradle wrapper. Defaults to gradlew. For example, if testing on Windows, gradlew.bat should be used instead.
+    type: string
+    default: "gradlew"
+steps:
+  - run:
+      name: Generate Dependencies Checksum
+      command: |
+        # find build files
+        buildFiles=$(find . -name '<< parameters.deps_checksum_file>>' | sed 's/.*/&/' | tr '\n' ' ')
+        # get the latest commit which modified the build files
+        lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
+        # do a check that there actually is more than one revision
+        if ! [ -z "$lastHash" ] && [ $(git rev-list --count HEAD) -gt "1" ]; then
+          # check which previous revision was the last to modify the build files
+          lastPreviousFirstHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
+          if [ "$lastPreviousFirstHash" = "$lastHash" ]; then
+            echo "Build files did not update last commit"
+          else
+            echo "Build files did update last commit"
+          fi
+          if ! [ -z "$lastPreviousFirstHash" ] && [ $(git rev-list --count $lastPreviousFirstHash) -gt "1" ]; then
+            lastPreviousSecondHash=$(git log -n 1 --pretty=format:%H $lastPreviousFirstHash~1 -- $buildFiles)
+            echo "Second last time build files updated at $lastPreviousSecondHash"
+            if ! [ -z "$lastPreviousSecondHash" ] && [ $(git rev-list --count $lastPreviousSecondHash) -gt "1" ]; then
+              lastPreviousThirdHash=$(git log -n 1 --pretty=format:%H $lastPreviousSecondHash~1 -- $buildFiles)
+              if ! [ -z "$lastPreviousThirdHash" ]; then
+                echo "Third last time build files updated at $lastPreviousThirdHash"
+              fi
+            fi
+          fi
+        else
+          echo "Build files did update last commit"
+        fi
+        if [ -z "$lastPreviousFirstHash" ]; then
+          lastPreviousFirstHash=$lastHash
+        fi
+        if [ -z "$lastPreviousSecondHash" ]; then
+          lastPreviousSecondHash=$lastHash
+        fi
+        if [ -z "$lastPreviousThirdHash" ]; then
+          lastPreviousThirdHash=$lastHash
+        fi
+        echo "$lastPreviousFirstHash" > /tmp/git_last_previous_first_hash
+        echo "$lastPreviousSecondHash" > /tmp/git_last_previous_second_hash
+        echo "$lastPreviousThirdHash" > /tmp/git_last_previous_third_hash
+        echo "$lastHash" > /tmp/git_last_hash
+        echo "success" > /tmp/build_status_success
+        echo "failure" > /tmp/build_status_failure
+  - run:
+      name: Generate Wrapper Checksum
+      command: << include(scripts/checksum_files.sh) >>
+      environment:
+        PARAM_CHECKSUM_FILES: << parameters.wrapper_checksum_file>>
+        CHECKSUM_SEED_LOCATION: "/tmp/gradle_wrapper_cache_seed"
+  - restore_cache:
+      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_dep_cache_seed" }}
+      keys:
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+  - restore_cache:
+      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
+  - run:
+      name: Prepare cache cleanup.
+      command: |
+        touch /tmp/git_last_hash
+        GRADLE_DIRECTORY="$HOME/.gradle"
+        if [[ ! -e $GRADLE_DIRECTORY ]]; then
+          mkdir -p $GRADLE_DIRECTORY
+        fi
+        GRADLE_CACHE_DIRECTORY="$GRADLE_DIRECTORY/caches"
+        if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
+          mkdir -p $GRADLE_CACHE_DIRECTORY
+        fi
+        echo "Folder sizes:"
+        du -h --max-depth=1 ~/.gradle/caches
+        if cmp -s "/tmp/git_last_previous_first_hash" "/tmp/git_last_hash" ; then
+          echo "No new cache entry will be created"
+          GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+          echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
+        else
+          gradleWrapperMainVersion=$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)
+          if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+            # for gradle 8+ - https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
+            GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
+            if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
+              mkdir -p $GRADLE_INIT_DIRECTORY
+            fi
+            echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+          fi
+        fi
+  - steps: << parameters.steps >>
+  - run:
+      name: Perform cache cleanup.
+      when: on_success
+      command: |
+        echo "success" > /tmp/build_status
+        # should the cache be cleaned?
+        if [ -f ~/.gradle/caches/last_success_hash ]; then
+          if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
+            echo "Cache does not need cleanup"
+            exit 0
+          fi
+        fi
+        # is the cache already cleaned by gradle 8+?
+        gradleWrapperMainVersion=$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)
+        if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+            echo "Cache cleaned up by gradle 8+"
+            exit 0
+        fi
+        # this is the first successful build with this particular set of build files
+        echo "Clean up cache for gradle < 8"
+        touch /tmp/settings.gradle
+        cat > /tmp/cleanup.gradle \<< 'endmsg'
+        import static org.gradle.internal.serialize.BaseSerializerFactory.*
+        import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
+        import java.io.FileFilter
+        import org.gradle.internal.file.impl.DefaultDeleter
+        import java.nio.file.Files
+        def containsArtifacts(File parentDirectory, FileFilter fileFilter) {
+            File[] files = parentDirectory.listFiles(fileFilter);
+            if(files != null && files.length > 0) {
+                return true;
+            }
+            FileFilter dirFilter = {f -> f.isDirectory()};
+            File[] dirFiles = parentDirectory.listFiles(dirFilter);
+            if(dirFiles != null && dirFiles.length > 0) {
+                for(File dirFile : dirFiles) {
+                    if(containsArtifacts(dirFile, fileFilter)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        def isDependenciesTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, FileFilter fileFilter) {
+            Long journalTimestamp = j.get(parentDirectory);
+            if(journalTimestamp != null) {
+                if(journalTimestamp >= deadline) {
+                    if(containsArtifacts(parentDirectory, fileFilter)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            long deleted = 0L;
+            FileFilter dirFilter = {f -> f.isDirectory()};
+            File[] dirFiles = parentDirectory.listFiles(dirFilter);
+            if(dirFiles != null && dirFiles.length > 0) {
+                for(File dirFile : dirFiles) {
+                    if(isDependenciesTouched(dirFile, j, deadline, fileFilter)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        def deleteFromDependencies(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter, FileFilter fileFilter) {
+            Long journalTimestamp = j.get(parentDirectory);
+            if(journalTimestamp != null) {
+                if(journalTimestamp < deadline) {
+                    if(containsArtifacts(parentDirectory, fileFilter)) {
+                        j.remove(parentDirectory)
+                        deleter.deleteRecursively(parentDirectory);
+                        File parent = parentDirectory.getParentFile();
+                        FileFilter siblingFilter = {f -> f.getName().startsWith(parentDirectory.getName())};
+                        File[] siblings = parent.listFiles(siblingFilter);
+                        if(siblings != null) {
+                            for(File sibling : siblings) {
+                                deleter.deleteRecursively(sibling);
+                            }
+                        }
+                        return 1;
+                    }
+                }
+                return 0;
+            }
+            long deleted = 0L;
+            FileFilter dirFilter = {f -> f.isDirectory()};
+            File[] dirFiles = parentDirectory.listFiles(dirFilter);
+            if(dirFiles != null && dirFiles.length > 0) {
+                for(File dirFile : dirFiles) {
+                    deleted += deleteFromDependencies(dirFile, j, deadline, deleter, fileFilter);
+                }
+            }
+            return deleted;
+        }
+        def isBuildCacheTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline) {
+            FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+            File[] fileFiles = parentDirectory.listFiles(f);
+            if(fileFiles != null && fileFiles.length > 0) {
+                for(File fileFile : fileFiles) {
+                    Long journalTimestamp = j.get(fileFile);
+                    if(journalTimestamp != null) {
+                        if(journalTimestamp >= deadline) {
+                            return true
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        def deleteFromBuildCache(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter) {
+            long deleted = 0L;
+            FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+            File[] fileFiles = parentDirectory.listFiles(f);
+            if(fileFiles != null && fileFiles.length > 0) {
+                for(File fileFile : fileFiles) {
+                    Long journalTimestamp = j.get(fileFile);
+                    if(journalTimestamp != null) {
+                        if(journalTimestamp < deadline) {
+                            j.remove(fileFile)
+                            fileFile.delete()
+                            deleted++
+                        }
+                    }
+                }
+            }
+            return deleted;
+        }
+        tasks.register("deleteOutdatedCacheEntries") {
+            doLast {
+                File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
+                BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
+                DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
+                File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
+                FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-") || f.name.startsWith("transforms-") };
+                File[] caches = cachesDirectory.listFiles(jarCacheFilter);
+                File deadlineFile = new File(deadline);
+                long lastModified = deadlineFile.lastModified();
+                boolean wasDependenciesTouched = false;
+                FileFilter touchedFileFilter = {f -> (f.getName().endsWith(".jar") && !f.getName().equals("cp_proj.jar") && !f.getName().equals("proj.jar") && !f.getName().equals("cp_settings.jar") && !f.getName().equals("settings.jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
+                for(File cache : caches) {
+                    if(isDependenciesTouched(cache, journal, lastModified, touchedFileFilter)) {
+                        wasDependenciesTouched = true;
+                        break;
+                    }
+                }
+                boolean wasBuildCacheTouched = false;
+                FileFilter buildCacheFilter = {f -> f.getName().startsWith("build-cache-") };
+                File[] buildCaches = cachesDirectory.listFiles(buildCacheFilter);
+                for(File cache : buildCaches) {
+                    if(isBuildCacheTouched(cache, journal, lastModified)) {
+                        wasBuildCacheTouched = true;
+                        break;
+                    }
+                }
+                if(wasDependenciesTouched || wasBuildCacheTouched) {
+                    // so assuming that a build has been run
+                    long deleted = 0;
+                    if(wasDependenciesTouched) {
+                        FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
+                        for(File cache : caches) {
+                            deleted += deleteFromDependencies (cache, journal, lastModified, deleter, fileFilter)
+                            }
+                    }
+                    long deletedFromBuildCache = 0;
+                    if(wasBuildCacheTouched) {
+                        for(File cache : buildCaches) {
+                            deletedFromBuildCache += deleteFromBuildCache(cache, journal, lastModified, deleter)
+                        }
+                    }
+                    println 'Deleted ' + deleted + ' cache entries and ' + deletedFromBuildCache + ' from build cache'
+                } else {
+                    println 'No dependencies or caches were touched, so assuming build did not execute and current cache content is still relevant'
+                }
+                journal.close()
+            }
+        }
+        endmsg
+        echo "A new cache entry will be created, deleting files not accessed during this build.."
+        ./gradlew --stop
+        ./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon deleteOutdatedCacheEntries
+  - run:
+      name: Set cache flags for a successful build.
+      when: on_success
+      command: |
+        echo "success" > /tmp/build_status
+        cp /tmp/git_last_hash ~/.gradle/caches/last_success_hash
+
+  - run:
+      name: Set cache flags for a failed build.
+      when: on_fail
+      command: |
+        # if the build has previously run successfully for this hash, we don't want to save another cache (which then would never be used, and would consume time and storage space)
+        if [ -f ~/.gradle/caches/last_success_hash ]; then
+          if cmp -s ~/.gradle/caches/last_success_hash /tmp/git_last_hash ; then
+            echo "Cache was saved after a previously successful build for the latest build file changes, creating another cache entry for the failed state is unnecessary."
+            # emulate successful build
+            echo "success" > /tmp/build_status
+          else
+            echo "failure" > /tmp/build_status
+          fi
+        else
+          echo "failure" > /tmp/build_status
+        fi
+  - save_cache:
+      key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "./gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "/tmp/build_status" }}
+      when: always
+      paths:
+        - ~/.gradle/caches
+  - save_cache:
+      paths:
+        - ~/.gradle/wrapper
+      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
