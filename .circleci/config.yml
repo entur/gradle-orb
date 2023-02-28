@@ -1,40 +1,37 @@
 version: 2.1
-
+setup: true
 orbs:
-  orb-tools: circleci/orb-tools@10.1.0
+  orb-tools: circleci/orb-tools@11.6.1
+  shellcheck: circleci/shellcheck@3.1
 
-executors:
-  lint-condo:
-    resource_class: small
-    docker:
-      - image: singapore/lint-condo
-
-jobs:
-  lint:
-    executor: lint-condo
-    steps:
-      - checkout
-      - run: yamllint .
+filters: &filters
+  tags:
+    only: /.*/
 
 workflows:
-  verify:
+  lint-pack:
     jobs:
-      - lint
+      - orb-tools/lint:
+          filters: *filters
+      - orb-tools/pack:
+          filters: *filters
+      - orb-tools/review:
+          filters: *filters
+      - shellcheck/check:
+          exclude: SC2148,SC2038,SC2086,SC2002,SC2016
+          filters: *filters
       - orb-tools/publish:
-          name: publish
-          context: orb-publishing
-          filters:
-            branches:
-              ignore: master
-          orb-path: src/@orb.yml
-          orb-ref: entur/gradle-orb@dev:$CIRCLE_BRANCH
-      - orb-tools/increment:
-          name: release
-          context: global
-          filters:
-            branches:
-              only: master
-          orb-path: src/@orb.yml
-          orb-ref: entur/gradle-orb
+          orb-name: entur/gradle-orb
+          vcs-type: << pipeline.project.type >>
           requires:
-            - lint
+            [orb-tools/lint, orb-tools/review, orb-tools/pack, shellcheck/check]
+          # Use a context to hold your publishing token.
+          context: orb-publisher
+          filters: *filters
+          enable-pr-comment: false
+      # Triggers the next workflow in the Orb Development Kit.
+      - orb-tools/continue:
+          pipeline-number: << pipeline.number >>
+          vcs-type: << pipeline.project.type >>
+          requires: [orb-tools/publish]
+          filters: *filters
