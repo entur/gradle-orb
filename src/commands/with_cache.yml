@@ -58,9 +58,7 @@ steps:
   - run:
       name: Set cache flags for a successful build.
       when: on_success
-      command: |
-        echo "success" > /tmp/build_status
-        cp /tmp/git_last_hash ~/.gradle/caches/last_success_hash
+      command: << include(scripts/success_build.sh) >>
   - run:
       name: Set cache flags for a failed build.
       when: on_fail
