@@ -73,11 +73,13 @@ steps:
       when: on_fail
       command: << include(scripts/failed_build.sh) >>
   - save_cache:
+      name: Save dependencies cache
       key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status" }}
       when: always
       paths:
         - ~/.gradle/caches
   - save_cache:
+      name: Save wrapper cache
       paths:
         - ~/.gradle/wrapper
       key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
