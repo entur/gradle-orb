@@ -34,6 +34,7 @@ workflows:
           reports_path: sample_app/build/reports/
           cache_key: 'v2'
           test_results_path: sample_app/build/test-results/
+          wrapper_checksum_file: sample_app/gradle/wrapper/gradle-wrapper.properties
           filters: *filters
       - orb-tools/pack:
           filters: *filters

@@ -18,7 +18,7 @@ parameters:
     type: string
     default: build/reports/
   app_src_directory:
-    description: Useful when the source of your maven project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
+    description: Useful when the source of your gradle project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
     type: string
     default: ''
   cache_key:
@@ -32,7 +32,7 @@ parameters:
   wrapper_checksum_file:
     description: File to use to generate the cache checksum for the gradle wrapper. Defaults to gradlew. For example, if testing on Windows, gradlew.bat should be used instead.
     type: string
-    default: 'gradlew'
+    default: 'gradle/wrapper/gradle-wrapper.properties'
 steps:
   - checkout
   - with_cache:
