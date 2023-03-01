@@ -7,7 +7,7 @@ if [ -f ~/.gradle/caches/last_success_hash ]; then
   fi
 fi
 # is the cache already cleaned by gradle 8+?
-gradleWrapperMainVersion=$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)
+gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     echo "Cache cleaned up by gradle 8+"
     exit 0

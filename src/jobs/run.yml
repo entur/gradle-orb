@@ -31,6 +31,7 @@ steps:
       cache_key: << parameters.cache_key >>
       deps_checksum_file: << parameters.deps_checksum_file >>
       wrapper_checksum_file: << parameters.wrapper_checksum_file >>
+      app_src_directory: << parameters.app_src_directory >>
       steps:
         - run:
             working_directory: << parameters.app_src_directory >>

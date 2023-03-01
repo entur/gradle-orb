@@ -14,7 +14,7 @@ if cmp -s "/tmp/git_last_previous_first_hash" "/tmp/git_last_hash" ; then
   GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
   echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
 else
-  gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+  gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
   if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # for gradle 8+ - https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
     GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
