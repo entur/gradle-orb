@@ -1,9 +1,5 @@
 # gradle-orb
-This orb clones the official [CircleCI Gradle] orb interface, but applies a different caching strategy. 
-
-In a nutshell, it __detects previous build file changes via the git history__, so that it can restore the previous Gradle cache regardless of what changed in the latest commit.
-
-In contrast, the official CircleCI orb restores the previous Gradle cache via a hash of the build files, so all changes to the build files (even whitespace changes) result in a cache miss. 
+This orb clones the official [CircleCI Gradle] orb interface, adding a __proper incremental cache__ which also __works when the build files are updated__.
 
 Typical use-case:
 
@@ -14,12 +10,11 @@ Typical use-case:
 Advantages:
 
  * Improves build time when the Gradle build files themselves are updated, as (most) dependencies are already in the cache
- * Less traffic for artifact repositories (i.e. Maven central, JCenter, your own private Artifactory etc.)
+ * Much less traffic for artifact repositories (i.e. Maven central, JCenter, your own private Artifactory etc.)
 
 Disadvantages:
 
- *  Uses internal Gradle classes to delete unused dependencies. 
-      * The cache job might break on a future version of the Gradle wrapper. If so, it is trivial to (temporarily) revert to the official Gradle orb.
+ *  Uses internal Gradle classes to delete unused dependencies for Gradle versions < 8. For Gradle version >= 8 it uses the built in cache cleanup strategy (with 1 day retention of unused dependencies).
       
 Bugs, feature suggestions and help requests can be filed with the [issue-tracker].
 
@@ -39,15 +34,21 @@ To use the default executor, [Docker Hub credentials](https://circleci.com/docs/
 ## Compatibility
 This orb uses a few internal Gradle classes to delete unused dependencies from the cache, thus keeping it from growing too big and consequently consuming additional time for cache persist / restore. 
 
-| Orb version  | Official Orb Version | Gradle version(s) |
-| ------------- | ------------- | -- |
-| 0.0.1  | 2.2.0  | 6.6 |
-| 0.0.4  | 2.2.0  | 6.6, 6.6.1, (possibly 6.7.0) |
-| 0.0.5  | 2.2.0  | 6.6, 6.6.1, 6.7.0 |
-| 0.0.6  | 2.2.0  | up to 7.2.x |
-| 0.0.7  | 2.2.0  | 7.3.x |
+| Orb version   | Official Orb Version | Gradle version(s)            |
+| ------------- | -------------------- | ---------------------------- |
+| 0.0.1         | 2.2.0                | 6.6                          |
+| 0.0.4         | 2.2.0                | 6.6, 6.6.1, (possibly 6.7.0) |
+| 0.0.5         | 2.2.0                | 6.6, 6.6.1, 6.7.0            |
+| 0.0.6         | 2.2.0                | up to 7.2.x                  |
+| 0.0.7         | 2.2.0                | 7.3.x                        |
+| 0.0.8         | 2.2.0                | 7.3.x                        |
+| 0.0.9         | 3.0.0                | 7.3.x, 8.x                   |
 
 ## Caching strategy
+In a nutshell, this orb __detects previous build file changes via the git history__, so that it can restore the previous Gradle cache regardless of what changed in the latest commit.
+
+In contrast, the official CircleCI orb restores the previous Gradle cache via a __hash of the build files__, so __all changes to the build files (even whitespace changes) result in a cache miss__ and the cache must be populated from scratch.
+
 The caching strategy tries to handle both successful and failing builds as good as possible. The CircleCI caches are immutable, so once a cache is written, it cannot be modified, a new cache key must be created (and the cache persisted).
 
 Permutations: 
@@ -102,7 +103,6 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 | ------------- | ------------- | -- | -- |
 | 1. | Build files  | Success  | Previous _success_ or _failure_ cache restored, new ___success_ cache C__ created |
 | 2. | Source files  | Failure  | ___success_ cache #C__ restored, no new cache created |
-
 
 ## Troubleshooting
 If the cache is corrupted, update the cache key, so that the previous state is not restored - as in the official Gradle orb.
