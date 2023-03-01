@@ -3,7 +3,7 @@ buildFiles=$(find . -name "${PARAM_CHECKSUM_FILES}" | sed 's/.*/&/' | tr '\n' ' 
 # get the latest commit which modified the build files
 lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
 # do a check that there actually is more than one revision
-if ! [ -z "$lastHash" ] && [ $(git rev-list --count HEAD) -gt "1" ]; then
+if [ -n "$lastHash" ] && [ $(git rev-list --count HEAD) -gt "1" ]; then
   # check which previous revision was the last to modify the build files
   lastPreviousFirstHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
   if [ "$lastPreviousFirstHash" = "$lastHash" ]; then
@@ -11,12 +11,12 @@ if ! [ -z "$lastHash" ] && [ $(git rev-list --count HEAD) -gt "1" ]; then
   else
     echo "Build files did update last commit"
   fi
-  if ! [ -z "$lastPreviousFirstHash" ] && [ $(git rev-list --count $lastPreviousFirstHash) -gt "1" ]; then
-    lastPreviousSecondHash=$(git log -n 1 --pretty=format:%H $lastPreviousFirstHash~1 -- $buildFiles)
+  if [ -n "$lastPreviousFirstHash" ] && [ "$(git rev-list --count $lastPreviousFirstHash)" -gt "1" ]; then
+    lastPreviousSecondHash="$(git log -n 1 --pretty=format:%H $lastPreviousFirstHash~1 -- $buildFiles)"
     echo "Second last time build files updated at $lastPreviousSecondHash"
-    if ! [ -z "$lastPreviousSecondHash" ] && [ $(git rev-list --count $lastPreviousSecondHash) -gt "1" ]; then
-      lastPreviousThirdHash=$(git log -n 1 --pretty=format:%H $lastPreviousSecondHash~1 -- $buildFiles)
-      if ! [ -z "$lastPreviousThirdHash" ]; then
+    if [ -n "$lastPreviousSecondHash" ] && [ "$(git rev-list --count $lastPreviousSecondHash)" -gt "1" ]; then
+      lastPreviousThirdHash="$(git log -n 1 --pretty=format:%H $lastPreviousSecondHash~1 -- $buildFiles)"
+      if [ -n "$lastPreviousThirdHash" ]; then
         echo "Third last time build files updated at $lastPreviousThirdHash"
       fi
     fi
