@@ -35,7 +35,7 @@ steps:
         PARAM_CHECKSUM_FILES: << parameters.wrapper_checksum_file>>
         CHECKSUM_SEED_LOCATION: "/tmp/gradle_wrapper_cache_seed"
   - restore_cache:
-      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_dep_cache_seed" }}
+      name: Restore dependencies from cache
       keys:
         - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
         - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
@@ -46,6 +46,7 @@ steps:
         - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
         - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
   - restore_cache:
+      name: Restore Wrapper from cache
       key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
   - run:
       name: Prepare cache cleanup.
