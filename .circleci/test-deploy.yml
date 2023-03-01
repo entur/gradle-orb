@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  gradle: entur/gradle@dev:<<pipeline.git.revision>>
+  gradle: entur/gradle-orb@dev:<<pipeline.git.revision>>
   orb-tools: circleci/orb-tools@11.6.1
 filters: &filters
   tags:
