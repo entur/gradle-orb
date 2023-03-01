@@ -3,9 +3,9 @@ buildFiles=$(find . -name "${PARAM_CHECKSUM_FILES}" | sed 's/.*/&/' | tr '\n' ' 
 # get the latest commit which modified the build files
 lastHash=$(git log -n 1 --pretty=format:%H HEAD -- $buildFiles)
 # do a check that there actually is more than one revision
-if [ -n "$lastHash" ] && [ $(git rev-list --count HEAD) -gt "1" ]; then
+if [ -n "$lastHash" ] && [ "$(git rev-list --count HEAD)" -gt "1" ]; then
   # check which previous revision was the last to modify the build files
-  lastPreviousFirstHash=$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)
+  lastPreviousFirstHash="$(git log -n 1 --pretty=format:%H HEAD~1 -- $buildFiles)"
   if [ "$lastPreviousFirstHash" = "$lastHash" ]; then
     echo "Build files did not update last commit"
   else
