@@ -108,6 +108,6 @@ If the `.circleci/config.yml` or Gradle wrapper version is updated, the cache is
 If the cache is corrupted, update the cache key, so that the previous state is not restored - as in the official Gradle orb.
 
 [issue-tracker]:               https://github.com/entur/gradle-orb
-[CircleCI Gradle]:             https://circleci.com/orbs/registry/orb/circleci/gradle?version=2.2.0
+[CircleCI Gradle]:             https://circleci.com/orbs/registry/orb/circleci/gradle
 
 
