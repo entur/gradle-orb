@@ -25,6 +25,6 @@ else
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 0}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
   fi
 fi
