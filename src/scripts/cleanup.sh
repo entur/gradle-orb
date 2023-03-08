@@ -21,7 +21,8 @@ echo "Clean up cache for gradle"
 
 GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
 echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
-touch -a -m -t 201512180130.09 "$GRADLE_CACHE_DIRECTORY/gc.properties"
+
+find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec touch  -a -m -t 201512180130.09 "{}" \;
 
 touch /tmp/settings.gradle
 cat > /tmp/cleanup.gradle << 'endmsg'
