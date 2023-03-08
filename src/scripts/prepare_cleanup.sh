@@ -8,13 +8,13 @@ if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
   mkdir -p $GRADLE_CACHE_DIRECTORY
 fi
 echo "Folder sizes:"
-du -h --max-depth=1 ~/.gradle/caches
+du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
 if cmp -s "/tmp/git_last_previous_first_hash" "/tmp/git_last_hash" ; then
   echo "No new cache entry will be created, build files did not change."
-  GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
 fi
 
 # project might contain multiple gradle build commands
 # so do not clean up cache yet
-echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
+GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+echo "org.gradle.cache.cleanup=false" >> "$GRADLE_PROPERTIES"
 
