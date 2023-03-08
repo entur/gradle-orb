@@ -26,9 +26,15 @@ find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec tou
 
 touch /tmp/settings.gradle
 cat > /tmp/cleanup.gradle << 'endmsg'
-System.out.println("Gradle script execution.")
+task dummy {
+    group 'Dummy task triggering cleanup'
+    description 'Tasks which triggers dependency cleanup'
+    doLast {
+        println 'Dummy task execution'
+    }
+}
 endmsg
 echo "A new cache entry will be created, deleting files not accessed during this build.."
 ./gradlew --stop
-./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon
+./gradlew -b /tmp/cleanup.gradle dummy --no-daemon
 
