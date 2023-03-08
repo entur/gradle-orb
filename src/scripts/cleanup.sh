@@ -15,17 +15,29 @@ if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   fi
 fi
 
+# is this gradle 8+?
+if [ -z "$PARAM_APP_DIRECTORY" ] ; then
+  PARAM_APP_DIRECTORY="."
+fi
 
-# this is the first successful build with this particular set of build files
-echo "Clean up cache for gradle"
+gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+    echo "Clean cache for gradle >= 8"
 
-GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
+    # make it so the GC runs
+    # it will still not remove files used within the last 24h
+    echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
+    find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec touch  -a -m -t 201512180130.09 "{}" \;
 
-find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec touch  -a -m -t 201512180130.09 "{}" \;
+    # https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
+    GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
+    if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
+      mkdir -p $GRADLE_INIT_DIRECTORY
+    fi
+    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
 
-touch /tmp/settings.gradle
-cat > /tmp/cleanup.gradle << 'endmsg'
+    touch /tmp/settings.gradle
+    cat > /tmp/cleanup.gradle << 'endmsg'
 task dummy {
     group 'Dummy task triggering cleanup'
     description 'Tasks which triggers dependency cleanup'
@@ -33,8 +45,171 @@ task dummy {
         println 'Dummy task execution'
     }
 }
+    endmsg
+    echo "A new cache entry will be created, deleting files not accessed during this build.."
+    ./gradlew -b /tmp/cleanup.gradle dummy
+    exit 0
+fi
+# this is the first successful build with this particular set of build files
+echo "Clean up cache for gradle < 8"
+touch /tmp/settings.gradle
+cat > /tmp/cleanup.gradle << 'endmsg'
+import static org.gradle.internal.serialize.BaseSerializerFactory.*
+import org.gradle.cache.internal.btree.BTreePersistentIndexedCache
+import java.io.FileFilter
+import org.gradle.internal.file.impl.DefaultDeleter
+import java.nio.file.Files
+def containsArtifacts(File parentDirectory, FileFilter fileFilter) {
+    File[] files = parentDirectory.listFiles(fileFilter);
+    if(files != null && files.length > 0) {
+        return true;
+    }
+    FileFilter dirFilter = {f -> f.isDirectory()};
+    File[] dirFiles = parentDirectory.listFiles(dirFilter);
+    if(dirFiles != null && dirFiles.length > 0) {
+        for(File dirFile : dirFiles) {
+            if(containsArtifacts(dirFile, fileFilter)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+def isDependenciesTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, FileFilter fileFilter) {
+    Long journalTimestamp = j.get(parentDirectory);
+    if(journalTimestamp != null) {
+        if(journalTimestamp >= deadline) {
+            if(containsArtifacts(parentDirectory, fileFilter)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    long deleted = 0L;
+    FileFilter dirFilter = {f -> f.isDirectory()};
+    File[] dirFiles = parentDirectory.listFiles(dirFilter);
+    if(dirFiles != null && dirFiles.length > 0) {
+        for(File dirFile : dirFiles) {
+            if(isDependenciesTouched(dirFile, j, deadline, fileFilter)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+def deleteFromDependencies(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter, FileFilter fileFilter) {
+    Long journalTimestamp = j.get(parentDirectory);
+    if(journalTimestamp != null) {
+        if(journalTimestamp < deadline) {
+            if(containsArtifacts(parentDirectory, fileFilter)) {
+                j.remove(parentDirectory)
+                deleter.deleteRecursively(parentDirectory);
+                File parent = parentDirectory.getParentFile();
+                FileFilter siblingFilter = {f -> f.getName().startsWith(parentDirectory.getName())};
+                File[] siblings = parent.listFiles(siblingFilter);
+                if(siblings != null) {
+                    for(File sibling : siblings) {
+                        deleter.deleteRecursively(sibling);
+                    }
+                }
+                return 1;
+            }
+        }
+        return 0;
+    }
+    long deleted = 0L;
+    FileFilter dirFilter = {f -> f.isDirectory()};
+    File[] dirFiles = parentDirectory.listFiles(dirFilter);
+    if(dirFiles != null && dirFiles.length > 0) {
+        for(File dirFile : dirFiles) {
+            deleted += deleteFromDependencies(dirFile, j, deadline, deleter, fileFilter);
+        }
+    }
+    return deleted;
+}
+def isBuildCacheTouched(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline) {
+    FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+    File[] fileFiles = parentDirectory.listFiles(f);
+    if(fileFiles != null && fileFiles.length > 0) {
+        for(File fileFile : fileFiles) {
+            Long journalTimestamp = j.get(fileFile);
+            if(journalTimestamp != null) {
+                if(journalTimestamp >= deadline) {
+                    return true
+                }
+            }
+        }
+    }
+    return false;
+}
+def deleteFromBuildCache(File parentDirectory, BTreePersistentIndexedCache<File, Long> j, long deadline, DefaultDeleter deleter) {
+    long deleted = 0L;
+    FileFilter f = {f -> f.isFile() && f.getName().length() == 32};
+    File[] fileFiles = parentDirectory.listFiles(f);
+    if(fileFiles != null && fileFiles.length > 0) {
+        for(File fileFile : fileFiles) {
+            Long journalTimestamp = j.get(fileFile);
+            if(journalTimestamp != null) {
+                if(journalTimestamp < deadline) {
+                    j.remove(fileFile)
+                    fileFile.delete()
+                    deleted++
+                }
+            }
+        }
+    }
+    return deleted;
+}
+tasks.register("deleteOutdatedCacheEntries") {
+    doLast {
+        File journalFile = new File("${project.gradle.gradleUserHomeDir}/caches/journal-1/file-access.bin");
+        BTreePersistentIndexedCache<String, Long> journal = new BTreePersistentIndexedCache<>(journalFile, FILE_SERIALIZER, LONG_SERIALIZER);
+        DefaultDeleter deleter = new DefaultDeleter({0L}, {f -> Files.isSymbolicLink(f.toPath())}, false);
+        File cachesDirectory = new File("${project.gradle.gradleUserHomeDir}/caches");
+        FileFilter jarCacheFilter = {f -> f.getName().startsWith("jars-") || f.name.startsWith("modules-") || f.name.startsWith("transforms-") };
+        File[] caches = cachesDirectory.listFiles(jarCacheFilter);
+        File deadlineFile = new File(deadline);
+        long lastModified = deadlineFile.lastModified();
+        boolean wasDependenciesTouched = false;
+        FileFilter touchedFileFilter = {f -> (f.getName().endsWith(".jar") && !f.getName().equals("cp_proj.jar") && !f.getName().equals("proj.jar") && !f.getName().equals("cp_settings.jar") && !f.getName().equals("settings.jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
+        for(File cache : caches) {
+            if(isDependenciesTouched(cache, journal, lastModified, touchedFileFilter)) {
+                wasDependenciesTouched = true;
+                break;
+            }
+        }
+        boolean wasBuildCacheTouched = false;
+        FileFilter buildCacheFilter = {f -> f.getName().startsWith("build-cache-") };
+        File[] buildCaches = cachesDirectory.listFiles(buildCacheFilter);
+        for(File cache : buildCaches) {
+            if(isBuildCacheTouched(cache, journal, lastModified)) {
+                wasBuildCacheTouched = true;
+                break;
+            }
+        }
+        if(wasDependenciesTouched || wasBuildCacheTouched) {
+            // so assuming that a build has been run
+            long deleted = 0;
+            if(wasDependenciesTouched) {
+                FileFilter fileFilter = {f -> (f.getName().endsWith(".jar") ) || f.getName().endsWith(".aar") || f.getName().endsWith(".dex")};
+                for(File cache : caches) {
+                    deleted += deleteFromDependencies (cache, journal, lastModified, deleter, fileFilter)
+                    }
+            }
+            long deletedFromBuildCache = 0;
+            if(wasBuildCacheTouched) {
+                for(File cache : buildCaches) {
+                    deletedFromBuildCache += deleteFromBuildCache(cache, journal, lastModified, deleter)
+                }
+            }
+            println 'Deleted ' + deleted + ' cache entries and ' + deletedFromBuildCache + ' from build cache'
+        } else {
+            println 'No dependencies or caches were touched, so assuming build did not execute and current cache content is still relevant'
+        }
+        journal.close()
+    }
+}
 endmsg
 echo "A new cache entry will be created, deleting files not accessed during this build.."
 ./gradlew --stop
-./gradlew -b /tmp/cleanup.gradle dummy --no-daemon
-
+./gradlew -b /tmp/cleanup.gradle -Pdeadline=/tmp/git_last_hash --no-daemon deleteOutdatedCacheEntries

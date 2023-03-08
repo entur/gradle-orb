@@ -10,8 +10,11 @@ fi
 echo "Folder sizes:"
 du -h --max-depth=1 ~/.gradle/caches
 if cmp -s "/tmp/git_last_previous_first_hash" "/tmp/git_last_hash" ; then
-  echo "No new cache entry will be created"
+  echo "No new cache entry will be created, build files did not change."
+  GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
 fi
-GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+
+# project might contain multiple gradle build commands
+# so do not clean up cache yet
 echo "org.gradle.cache.cleanup=false" >> $GRADLE_PROPERTIES
 
