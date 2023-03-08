@@ -45,7 +45,7 @@ task dummy {
         println 'Dummy task execution'
     }
 }
-    endmsg
+endmsg
     echo "A new cache entry will be created, deleting files not accessed during this build.."
     ./gradlew -b /tmp/cleanup.gradle dummy
     exit 0
