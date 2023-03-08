@@ -26,7 +26,8 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
 
     # make it so the GC runs
     # it will still not remove files used within the last 24h
-    echo "org.gradle.cache.cleanup=true" >> $GRADLE_PROPERTIES
+    GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+    echo "org.gradle.cache.cleanup=true" >> "$GRADLE_PROPERTIES"
     find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec touch  -a -m -t 201512180130.09 "{}" \;
 
     # https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
@@ -46,7 +47,7 @@ task dummy {
     }
 }
 endmsg
-    echo "A new cache entry will be created, deleting files not accessed during this build.."
+    echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
     ./gradlew -b /tmp/cleanup.gradle dummy
     exit 0
 fi
