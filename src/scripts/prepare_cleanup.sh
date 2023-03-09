@@ -15,6 +15,15 @@ fi
 
 # project might contain multiple gradle build commands
 # so do not clean up cache yet
-GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-echo "org.gradle.cache.cleanup=false" >> "$GRADLE_PROPERTIES"
+# is this gradle 8+?
+if [ -z "$PARAM_APP_DIRECTORY" ] ; then
+  PARAM_APP_DIRECTORY="."
+fi
 
+gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+  echo "beforeSettings { settings -> settings.caches {cleanup = Cleanup.DISABLED}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+else 
+  GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
+  echo "org.gradle.cache.cleanup=false" >> "$GRADLE_PROPERTIES"
+fi

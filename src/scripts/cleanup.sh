@@ -22,20 +22,15 @@ fi
 
 gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+    # make it so the built-in GC runs
     echo "Clean cache for gradle >= 8"
-
-    # make it so the GC runs
-    # it will still not remove files used within the last 24h
-    GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
-    echo "org.gradle.cache.cleanup=true" >> "$GRADLE_PROPERTIES"
-    find $GRADLE_CACHE_DIRECTORY -maxdepth 2 -type f -name "gc.properties" -exec touch  -a -m -t 201512180130.09 "{}" \;
-
+    # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
     # https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
     GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1, cleanup = Cleanup.ALWAYS}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
 
     touch /tmp/settings.gradle
     cat > /tmp/cleanup.gradle << 'endmsg'
