@@ -15,13 +15,11 @@ if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   fi
 fi
 
-# is this gradle 8+?
-if [ -z "$PARAM_APP_DIRECTORY" ] ; then
-  # run from root 
-else
+if [ -n "${PARAM_APP_DIRECTORY}" ]; then
   cd "$PARAM_APP_DIRECTORY" || exit 1
 fi
 
+# is this gradle 8+?
 gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
