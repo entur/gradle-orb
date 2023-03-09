@@ -22,8 +22,12 @@ fi
 
 gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
+  GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
+  if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
+    mkdir -p $GRADLE_INIT_DIRECTORY
+  fi
   echo "beforeSettings { settings -> settings.caches {cleanup = Cleanup.DISABLED}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
-else 
+else
   GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
   echo "org.gradle.cache.cleanup=false" >> "$GRADLE_PROPERTIES"
 fi
