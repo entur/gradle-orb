@@ -30,7 +30,7 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo "beforeSettings { settings -> settings.caches {downloadedResources.removeUnusedEntriesAfterDays = 1, releasedWrappers.removeUnusedEntriesAfterDays = 1, snapshotWrappers.removeUnusedEntriesAfterDays = 1, createdResources.removeUnusedEntriesAfterDays = 1, cleanup = Cleanup.ALWAYS}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
 
     touch /tmp/settings.gradle
     cat > /tmp/cleanup.gradle << 'endmsg'
