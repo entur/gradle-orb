@@ -17,12 +17,12 @@ fi
 
 # is this gradle 8+?
 if [ -z "$PARAM_APP_DIRECTORY" ] ; then
-  PARAM_APP_DIRECTORY="."
+  # run from root 
+else
+  cd "$PARAM_APP_DIRECTORY" || exit 1
 fi
 
-cd $PARAM_APP_DIRECTORY
-
-gradleWrapperMainVersion="$(cat $gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
     echo "Clean cache for gradle >= 8"
