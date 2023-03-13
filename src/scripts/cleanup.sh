@@ -30,7 +30,7 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 
     touch /tmp/settings.gradle
     cat > /tmp/cleanup.gradle << 'endmsg'
@@ -43,7 +43,7 @@ task dummy {
 }
 endmsg
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    ./gradlew -b /tmp/cleanup.gradle dummy
+    ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon
     exit 0
 fi
 # this is the first successful build with this particular set of build files
