@@ -23,6 +23,9 @@ fi
 gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
+    # for debugging
+    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+
     echo "Clean cache for gradle >= 8"
     # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
     # https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
@@ -43,7 +46,10 @@ task dummy {
 }
 endmsg
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
+    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon
+    # for debugging
+    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     exit 0
 fi
 # this is the first successful build with this particular set of build files
