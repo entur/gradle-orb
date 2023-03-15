@@ -4,8 +4,8 @@ description: |
     Simplify common tasks for building and testing Java projects using Gradle.
     This orb is able to restore the previous Gradle cache also when build files
     are modified, improving build times and reducing load on artifact stores considerably
-    compared to the official CircleCI gradle orb. 
-    Drop-in replacement for the official CircleCI Gradle orb version 3.0.0. 
+    compared to the official CircleCI gradle orb.
+    Drop-in replacement for the official CircleCI Gradle orb version 3.0.0.
 
 display:
     home_url: https://github.com/entur/gradle-orb
