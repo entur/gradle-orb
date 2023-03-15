@@ -2,12 +2,10 @@ version: 2.1
 
 description: |
     Simplify common tasks for building and testing Java projects using Gradle.
-    Based on the official CircleCI gradle orb version 2.2.0 and tested with
-    gradle wrapper 6.6+, this orb takes advantange of the git history when
-    restoring caches, improving build time when build files are modified.
-    Note: This orb uses internal Gradle classes to delete unused dependencies. This might
-    break the build, if so revert to the official orb (and post an issue at
-    https://github.com/entur/gradle-orb).
+    This orb is able to restore the previous Gradle cache also when build files
+    are modified, improving build times and reducing load on artifact stores considerably
+    compared to the official CircleCI gradle orb. 
+    Drop-in replacement for the official CircleCI Gradle orb version 3.0.0. 
 
 display:
     home_url: https://github.com/entur/gradle-orb

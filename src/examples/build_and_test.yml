@@ -3,7 +3,7 @@ usage:
   version: 2.1
 
   orbs:
-    gradle: circleci/gradle@x.y
+    gradle: entur/gradle-orb@x.y
 
   workflows:
     checkout-build-test:
