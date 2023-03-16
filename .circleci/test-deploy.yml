@@ -31,7 +31,7 @@ commands:
                   fi
                   size=$(du -hsBM $GRADLE_CACHE_DIRECTORY)
                   parts=($size)
-                  if [ "${parts[0]}" -lt 3]; then
+                  if [[ "${parts[0]}" -lt 3]]; then
                     echo "Gradle cache directory is only size ${parts[0]}"
                   fi
                   GRADLE_WRAPPER_DIRECTORY="$GRADLE_DIRECTORY/wrapper"
@@ -41,7 +41,7 @@ commands:
                   fi     
                   size=$(du -hsBM $GRADLE_WRAPPER_DIRECTORY)
                   parts=($size)
-                  if [ "${parts[0]}" -lt 3]; then
+                  if [[ "${parts[0]}" -lt 3]]; then
                     echo "Gradle wrapper cache directory is only size ${parts[0]}"
                   fi
   
