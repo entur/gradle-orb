@@ -13,7 +13,8 @@ jobs:
   # the output is as expected
   #
   test-script:
-    executor: gradle/default
+    docker:
+      - image: cimg/base:stable
     steps:
       - checkout
       - run:
