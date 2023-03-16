@@ -6,7 +6,7 @@ filters: &all-tags
   tags:
     only: /.*/
 aliases:
-  - &cache-key v2
+  - &cache-key v3
   
 commands:
   verify_with_cache:
