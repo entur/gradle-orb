@@ -67,7 +67,6 @@ workflows:
           reports_path: sample_app/build/reports/
           cache_key: *cache-key
           test_results_path: sample_app/build/test-results/
-          wrapper_checksum_file: sample_app/gradle/wrapper/gradle-wrapper.properties
           filters: *all-tags
       - integration-test-cache:
           filters: *all-tags
