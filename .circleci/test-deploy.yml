@@ -7,6 +7,33 @@ filters: &all-tags
     only: /.*/
 aliases:
   - &cache-key v2
+  
+commands:
+  verify_with_cache:
+    description: Cache the build cache
+    steps:
+      - gradle/with_cache:
+          cache_key: *cache-key
+          steps:
+            - run:
+                name: Check if Gradle wrapper and cache was saved and restored
+                command: |
+                  GRADLE_DIRECTORY="$HOME/.gradle"
+                  if [[ ! -e $GRADLE_DIRECTORY ]]; then
+                    echo "No gradle directory detected at $GRADLE_DIRECTORY"
+                    exit 1
+                  fi
+                  GRADLE_CACHE_DIRECTORY="$GRADLE_DIRECTORY/caches"
+                  if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
+                    echo "No gradle cache directory detected at $GRADLE_CACHE_DIRECTORY"
+                    exit 1
+                  fi
+                  GRADLE_WRAPPER_DIRECTORY="$GRADLE_DIRECTORY/wrapper"
+                  if [[ ! -e $GRADLE_WRAPPER_DIRECTORY ]]; then
+                    echo "No gradle wrapper directory detected at $GRADLE_WRAPPER_DIRECTORY"
+                    exit 1
+                  fi     
+  
 jobs:
   # Execute a command from the orb and verify
   # the output is as expected
@@ -15,27 +42,7 @@ jobs:
     executor: gradle/default
     steps:
       - checkout
-      - gradle/with_cache:
-          - cache_key: *cache-key
-          - steps:
-              - run:
-                  name: Check if Gradle wrapper and cache was saved and restored
-                  command: |-
-                    GRADLE_DIRECTORY="$HOME/.gradle"
-                    if [[ ! -e $GRADLE_DIRECTORY ]]; then
-                      echo "No gradle directory detected at $GRADLE_DIRECTORY"
-                      exit 1
-                    fi
-                    GRADLE_CACHE_DIRECTORY="$GRADLE_DIRECTORY/caches"
-                    if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
-                      echo "No gradle cache directory detected at $GRADLE_CACHE_DIRECTORY"
-                      exit 1
-                    fi
-                    GRADLE_WRAPPER_DIRECTORY="$GRADLE_DIRECTORY/wrapper"
-                    if [[ ! -e $GRADLE_WRAPPER_DIRECTORY ]]; then
-                      echo "No gradle wrapper directory detected at $GRADLE_WRAPPER_DIRECTORY"
-                      exit 1
-                    fi
+      - verify_with_cache
 
 workflows:
   test-deploy:
