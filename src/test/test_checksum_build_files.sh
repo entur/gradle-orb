@@ -1,3 +1,4 @@
+set -e
 rm -rf /tmp/repo
 mkdir /tmp/repo
 
@@ -7,6 +8,9 @@ cd /tmp/repo || exit 1
 
 git init
 git config --global init.defaultBranch master
+git config --global user.email "you@example.com"
+git config --global user.name "Your Name"
+  
 echo "Test project" > README.md
 echo "1" > build.gradle
 git add .
