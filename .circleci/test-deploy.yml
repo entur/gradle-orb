@@ -29,11 +29,21 @@ commands:
                     echo "No gradle cache directory detected at $GRADLE_CACHE_DIRECTORY"
                     exit 1
                   fi
+                  size=$(du -hsBM $GRADLE_CACHE_DIRECTORY)
+                  parts=($size)
+                  if [ "${parts[0]}" -lt 3]; then
+                    echo "Gradle cache directory is only size ${parts[0]}"
+                  fi
                   GRADLE_WRAPPER_DIRECTORY="$GRADLE_DIRECTORY/wrapper"
                   if [[ ! -e $GRADLE_WRAPPER_DIRECTORY ]]; then
                     echo "No gradle wrapper directory detected at $GRADLE_WRAPPER_DIRECTORY"
                     exit 1
                   fi     
+                  size=$(du -hsBM $GRADLE_WRAPPER_DIRECTORY)
+                  parts=($size)
+                  if [ "${parts[0]}" -lt 3]; then
+                    echo "Gradle wrapper cache directory is only size ${parts[0]}"
+                  fi
   
 jobs:
   # Execute a command from the orb and verify
