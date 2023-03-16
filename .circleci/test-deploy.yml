@@ -29,10 +29,9 @@ commands:
                     echo "No gradle cache directory detected at $GRADLE_CACHE_DIRECTORY"
                     exit 1
                   fi
-                  size=$(du -hsBM $GRADLE_CACHE_DIRECTORY)
+                  size=$(du -hs --block-size=1000000 $GRADLE_CACHE_DIRECTORY)
                   sizeArray=($size)
-                  mbString=${sizeArray[0]}
-                  mbCount=${mbString%?}
+                  mbCount=${sizeArray[0]}
                   if [ "$mbCount" -lt 3 ]; then
                     echo "Gradle cache directory is only size ${sizeArray[0]}, expected at least 3M"
                     exit 1
@@ -42,10 +41,9 @@ commands:
                     echo "No gradle wrapper directory detected at $GRADLE_WRAPPER_DIRECTORY"
                     exit 1
                   fi     
-                  size=$(du -hsBM $GRADLE_WRAPPER_DIRECTORY)
+                  size=$(du -hs --block-size=1000000 $GRADLE_WRAPPER_DIRECTORY)
                   sizeArray=($size)
-                  mbString=${sizeArray[0]}
-                  mbCount=${mbString%?}
+                  mbCount=${sizeArray[0]}
                   if [ "$mbCount" -lt 10 ]; then
                     echo "Gradle wrapper cache directory is only size ${sizeArray[0]}, expected at least 10M"
                     exit 1
