@@ -6,7 +6,7 @@ filters: &all-tags
   tags:
     only: /.*/
 aliases:
-  - &cache-key v3
+  - &cache-key <<pipeline.git.revision>>
   
 commands:
   verify_with_cache:
