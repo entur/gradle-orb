@@ -13,7 +13,6 @@ jobs:
   # the output is as expected
   #
   test-script:
-    executor: gradle/default
     steps:
       - checkout
       - run:
