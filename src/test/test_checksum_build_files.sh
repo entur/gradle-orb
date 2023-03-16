@@ -3,7 +3,7 @@ mkdir /tmp/repo
 
 cp ./src/scripts/checksum_build_files.sh /tmp/repo
 
-cd /tmp/repo
+cd /tmp/repo || exit 1
 
 git init
 git config --global init.defaultBranch master
