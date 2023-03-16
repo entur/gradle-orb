@@ -13,6 +13,8 @@ jobs:
   # the output is as expected
   #
   test-script:
+    docker:
+      - image: cimg/base:stable
     steps:
       - checkout
       - run:
