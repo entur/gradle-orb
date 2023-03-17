@@ -10,7 +10,9 @@ usage:
     my-executor:
       docker:
         - image: org/image:tag
-
+          auth:
+              username: $DOCKERHUB_LOGIN
+              password: $DOCKERHUB_PASSWORD
   workflows:
     gradle_test:
       jobs:

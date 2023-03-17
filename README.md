@@ -10,7 +10,7 @@ Typical use-case:
 Advantages:
 
  * Improves build time when the Gradle build files themselves are updated, as (most) dependencies are already in the cache
- * Much less traffic for artifact repositories (i.e. Maven central, JCenter, your own private Artifactory etc.)
+ * Much less traffic for artifact repositories (i.e. Maven central, your own private Artifactory etc.)
 
 Disadvantages:
 
