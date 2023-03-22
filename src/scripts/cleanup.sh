@@ -15,7 +15,6 @@ if [[ -f /tmp/empty_cache ]]; then
   exit 0
 fi
 
-
 if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   if cmp -s "$GRADLE_CACHE_DIRECTORY/last_success_hash" /tmp/git_last_hash ; then
     echo "Cache does not need cleanup"
@@ -53,13 +52,13 @@ task dummy {
 }
 endmsg
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    echo "Storage use before cleanup:"
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+    #echo "Storage use before cleanup:"
+    #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     ./gradlew --stop
     ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon --info
     # for debugging
-    echo "Storage use after cleanup:"
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+    #echo "Storage use after cleanup:"
+    #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     # clean up
     rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     exit 0
