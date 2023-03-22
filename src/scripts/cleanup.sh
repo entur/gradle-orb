@@ -42,20 +42,11 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 
     touch /tmp/settings.gradle
-    cat > /tmp/cleanup.gradle << 'endmsg'
-task dummy {
-    group 'Dummy task triggering cleanup'
-    description 'Tasks which triggers dependency cleanup'
-    doLast {
-        println 'Dummy task execution'
-    }
-}
-endmsg
+    touch /tmp/cleanup.gradle
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
     #echo "Storage use before cleanup:"
     #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
-    ./gradlew --stop
-    ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon --info
+    ./gradlew -b /tmp/cleanup.gradle projects --info
     # for debugging
     #echo "Storage use after cleanup:"
     #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
