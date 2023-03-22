@@ -45,7 +45,7 @@ task dummy {
 endmsg
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
     echo "Storage use before cleanup:"
-    du -hs --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     ./gradlew --stop
     ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon --info
     # for debugging
