@@ -44,12 +44,7 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     touch /tmp/settings.gradle
     touch /tmp/cleanup.gradle
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    #echo "Storage use before cleanup:"
-    #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     ./gradlew -b /tmp/cleanup.gradle projects --info
-    # for debugging
-    #echo "Storage use after cleanup:"
-    #du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     # clean up
     rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     exit 0
