@@ -15,16 +15,14 @@ if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   fi
 fi
 
-if [ -n "${PARAM_APP_DIRECTORY}" ]; then
-  cd "$PARAM_APP_DIRECTORY" || exit 1
+# is this gradle 8+?
+if [ -z "$PARAM_APP_DIRECTORY" ] ; then
+  PARAM_APP_DIRECTORY="."
 fi
 
-# is this gradle 8+?
-gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
-    # for debugging
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
 
     echo "Clean cache for gradle >= 8"
     # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
@@ -46,11 +44,15 @@ task dummy {
 }
 endmsg
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+    echo "Storage use before cleanup:"
+    du -hs --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
     ./gradlew --stop
     ./gradlew -b /tmp/cleanup.gradle dummy --no-daemon --info
     # for debugging
+    echo "Storage use after cleanup:"
     du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
+    # clean up
+    rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     exit 0
 fi
 # this is the first successful build with this particular set of build files

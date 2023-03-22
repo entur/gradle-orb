@@ -21,6 +21,7 @@ jobs:
           name: Test build file checksum
           command: |
                 ./src/test/test_checksum_build_files.sh
+                ./src/test/test_cleanup.sh
 
 workflows:
   lint-pack:
