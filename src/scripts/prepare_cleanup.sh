@@ -6,6 +6,7 @@ fi
 GRADLE_CACHE_DIRECTORY="$GRADLE_DIRECTORY/caches"
 if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
   mkdir -p $GRADLE_CACHE_DIRECTORY
+  echo "true" > /tmp/empty_cache
 fi
 echo "Folder sizes:"
 du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"

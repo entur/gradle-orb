@@ -8,6 +8,14 @@ if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
   exit 0
 fi
 
+if [[ -f /tmp/empty_cache ]]; then
+  echo "No cache was restored, so no cleanup needed"
+  # clean up
+  rm /tmp/empty_cache
+  exit 0
+fi
+
+
 if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   if cmp -s "$GRADLE_CACHE_DIRECTORY/last_success_hash" /tmp/git_last_hash ; then
     echo "Cache does not need cleanup"
