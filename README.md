@@ -32,7 +32,9 @@ where `x` is the latest version from [the orb registry](https://circleci.com/orb
 To use the default executor, [Docker Hub credentials](https://circleci.com/docs/2.0/private-images/) must be set as the environment variables `$DOCKERHUB_LOGIN` and `$DOCKERHUB_PASSWORD`.
 
 ## Compatibility
-This orb uses a few internal Gradle classes to delete unused dependencies from the cache, thus keeping it from growing too big and consequently consuming additional time for cache persist / restore. 
+
+### Gradle < 8
+For Gradle version < 8, this orb uses a few internal Gradle classes to delete unused dependencies from the cache. While these internal classes have not changed in the later versions of Gradle, this approach is somewhat brittle and generally needs testing for each Gradle version.
 
 | Orb version   | Official Orb Version | Gradle version(s)            |
 | ------------- | -------------------- | ---------------------------- |
@@ -42,7 +44,16 @@ This orb uses a few internal Gradle classes to delete unused dependencies from t
 | 0.0.6         | 2.2.0                | up to 7.2.x                  |
 | 0.0.7         | 2.2.0                | 7.3.x                        |
 | 0.0.8         | 2.2.0                | 7.3.x                        |
-| 0.0.9         | 3.0.0                | 7.x, 8.x                     |
+| 0.0.9         | 3.0.0                | 7.x                          |
+
+Note that 7.x support is now deprecated.
+
+### Gradle >= 8
+For Gradle >= 8, the orb uses the 'officially endorsed' method of cleaning up the cache.
+
+| Orb version   | Official Orb Version | Gradle version(s)            |
+| ------------- | -------------------- | ---------------------------- |
+| 0.0.9         | 3.0.0                | 8.x                          |
 
 ## Caching strategy
 In a nutshell, this orb __detects previous build file changes via the git history__, so that it can restore the previous Gradle cache regardless of what changed in the latest commit.
