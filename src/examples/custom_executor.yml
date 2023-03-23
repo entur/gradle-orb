@@ -4,13 +4,15 @@ usage:
   version: 2.1
 
   orbs:
-    gradle: circleci/gradle@x.y
+    gradle: entur/gradle-orb@x.y
 
   executors:
     my-executor:
       docker:
         - image: org/image:tag
-
+          auth:
+              username: $DOCKERHUB_LOGIN
+              password: $DOCKERHUB_PASSWORD
   workflows:
     gradle_test:
       jobs:

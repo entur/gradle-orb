@@ -6,6 +6,7 @@ fi
 GRADLE_CACHE_DIRECTORY="$GRADLE_DIRECTORY/caches"
 if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
   mkdir -p $GRADLE_CACHE_DIRECTORY
+  echo "true" > /tmp/empty_cache
 fi
 echo "Folder sizes:"
 du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
@@ -26,7 +27,7 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
   if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
     mkdir -p $GRADLE_INIT_DIRECTORY
   fi
-  echo "beforeSettings { settings -> settings.caches {cleanup = Cleanup.DISABLED}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+  echo "beforeSettings { settings -> settings.caches {cleanup = Cleanup.DISABLED}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 else
   GRADLE_PROPERTIES="$GRADLE_DIRECTORY/gradle.properties"
   echo "org.gradle.cache.cleanup=false" >> "$GRADLE_PROPERTIES"

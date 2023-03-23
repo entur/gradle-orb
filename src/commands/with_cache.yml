@@ -23,7 +23,7 @@ parameters:
     type: string
     default: "build.gradle"
   wrapper_checksum_file:
-    description: File to use to generate the cache checksum for the gradle wrapper. Defaults to gradlew. For example, if testing on Windows, gradlew.bat should be used instead.
+    description: File to use to generate the cache checksum for the gradle wrapper.
     type: string
     default: "gradle-wrapper.properties"
 steps:

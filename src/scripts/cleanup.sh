@@ -8,6 +8,13 @@ if [[ ! -e $GRADLE_CACHE_DIRECTORY ]]; then
   exit 0
 fi
 
+if [[ -f /tmp/empty_cache ]]; then
+  echo "No cache was restored, so no cleanup needed"
+  # clean up
+  rm /tmp/empty_cache
+  exit 0
+fi
+
 if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   if cmp -s "$GRADLE_CACHE_DIRECTORY/last_success_hash" /tmp/git_last_hash ; then
     echo "Cache does not need cleanup"
@@ -15,6 +22,7 @@ if [ -f "$GRADLE_CACHE_DIRECTORY/last_success_hash" ]; then
   fi
 fi
 
+# cd into directory so that gradlew command is available
 if [ -n "${PARAM_APP_DIRECTORY}" ]; then
   cd "$PARAM_APP_DIRECTORY" || exit 1
 fi
@@ -23,8 +31,6 @@ fi
 gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
-    # for debugging
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
 
     echo "Clean cache for gradle >= 8"
     # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
@@ -33,23 +39,14 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cleanup.gradle
+    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 
     touch /tmp/settings.gradle
-    cat > /tmp/cleanup.gradle << 'endmsg'
-task dummy {
-    group 'Dummy task triggering cleanup'
-    description 'Tasks which triggers dependency cleanup'
-    doLast {
-        println 'Dummy task execution'
-    }
-}
-endmsg
+    touch /tmp/cleanup.gradle
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    ./gradlew -b /tmp/cleanup.gradle dummy
-    # for debugging
-    du -h --max-depth=1 "$GRADLE_CACHE_DIRECTORY"
-
+    ./gradlew -b /tmp/cleanup.gradle projects --info
+    # clean up
+    rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     exit 0
 fi
 # this is the first successful build with this particular set of build files

@@ -4,34 +4,55 @@ orbs:
   orb-tools: circleci/orb-tools@11.6.1
   shellcheck: circleci/shellcheck@3.1
 
-filters: &filters
+filters: &all-tags
   tags:
     only: /.*/
+
+jobs:
+  # Execute a command from the orb and verify
+  # the output is as expected
+  #
+  test-script:
+    docker:
+      - image: cimg/openjdk:11.0
+    steps:
+      - checkout
+      - run:
+          name: Test build file checksum
+          command: |
+                ./src/test/test_checksum_build_files.sh
+                ./src/test/test_cleanup.sh
 
 workflows:
   lint-pack:
     jobs:
       - orb-tools/lint:
-          filters: *filters
+          filters: *all-tags
+      - test-script:
+          filters: *all-tags
       - orb-tools/pack:
-          filters: *filters
+          filters: *all-tags
       - orb-tools/review:
-          filters: *filters
+          filters: *all-tags
       - shellcheck/check:
           exclude: SC2148,SC2038,SC2086,SC2002,SC2016
-          filters: *filters
+          filters: *all-tags
       - orb-tools/publish:
           orb-name: entur/gradle-orb
           vcs-type: << pipeline.project.type >>
           requires:
-            [orb-tools/lint, orb-tools/review, orb-tools/pack, shellcheck/check]
+            - orb-tools/lint
+            - orb-tools/review
+            - orb-tools/pack
+            - shellcheck/check
+            - test-script
           # Use a context to hold your publishing token.
           context: orb-publishing
-          filters: *filters
+          filters: *all-tags
           enable-pr-comment: false
       # Triggers the next workflow in the Orb Development Kit.
       - orb-tools/continue:
           pipeline-number: << pipeline.number >>
           vcs-type: << pipeline.project.type >>
           requires: [orb-tools/publish]
-          filters: *filters
+          filters: *all-tags

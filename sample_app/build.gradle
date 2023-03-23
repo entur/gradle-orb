@@ -1,14 +1,29 @@
 
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
 repositories {
     jcenter()
 }
 
+ext {
+  junitVersion = '5.9.2'
+  guavaVersion = '31.1-jre'
+  commonsIoVersion = '2.11.0'
+  eclipseCollectionsVersion = '11.1.0'
+}
+
+test {
+    useJUnitPlatform()
+}
+
 dependencies {
-    implementation 'com.google.guava:guava:23.0'
-    testImplementation 'junit:junit:4.12'
+    implementation "org.eclipse.collections:eclipse-collections:${eclipseCollectionsVersion}"
+    implementation "commons-io:commons-io:${commonsIoVersion}"
+    implementation "com.google.guava:guava:${guavaVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    testRuntimeOnly "org.junit.vintage:junit-vintage-engine:${junitVersion}"
 }
 
