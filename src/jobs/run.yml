@@ -1,0 +1,40 @@
+description: |
+  Checkout and run task in a gradle project.
+executor: << parameters.executor >>
+parameters:
+  executor:
+    description: The name of custom executor to use
+    type: executor
+    default: default
+  app_src_directory:
+    description: Useful when the source of your gradle project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
+    type: string
+    default: ''
+  command:
+    type: string
+    default: build
+  cache_key:
+    description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
+    type: string
+    default: 'v1'
+  deps_checksum_file:
+    description: File to use to generate the cache checksum for dependencies. Defaults to build.gradle. For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+    type: string
+    default: 'build.gradle'
+  wrapper_checksum_file:
+    description: File to use to generate the cache checksum for the gradle wrapper. Defaults to gradlew. For example, if testing on Windows, gradlew.bat should be used instead.
+    type: string
+    default: 'gradle/wrapper/gradle-wrapper.properties'
+steps:
+  - checkout
+  - with_cache:
+      cache_key: << parameters.cache_key >>
+      deps_checksum_file: << parameters.deps_checksum_file >>
+      wrapper_checksum_file: << parameters.wrapper_checksum_file >>
+      app_src_directory: << parameters.app_src_directory >>
+      steps:
+        - run:
+            working_directory: << parameters.app_src_directory >>
+            name: Run Task
+            command: ./gradlew << parameters.command >>
+

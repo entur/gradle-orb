@@ -1,40 +1,58 @@
 version: 2.1
-
+setup: true
 orbs:
-  orb-tools: circleci/orb-tools@10.1.0
+  orb-tools: circleci/orb-tools@11.6.1
+  shellcheck: circleci/shellcheck@3.1
 
-executors:
-  lint-condo:
-    resource_class: small
-    docker:
-      - image: singapore/lint-condo
+filters: &all-tags
+  tags:
+    only: /.*/
 
 jobs:
-  lint:
-    executor: lint-condo
+  # Execute a command from the orb and verify
+  # the output is as expected
+  #
+  test-script:
+    docker:
+      - image: cimg/openjdk:11.0
     steps:
       - checkout
-      - run: yamllint .
+      - run:
+          name: Test build file checksum
+          command: |
+                ./src/test/test_checksum_build_files.sh
+                ./src/test/test_cleanup.sh
 
 workflows:
-  verify:
+  lint-pack:
     jobs:
-      - lint
+      - orb-tools/lint:
+          filters: *all-tags
+      - test-script:
+          filters: *all-tags
+      - orb-tools/pack:
+          filters: *all-tags
+      - orb-tools/review:
+          filters: *all-tags
+      - shellcheck/check:
+          exclude: SC2148,SC2038,SC2086,SC2002,SC2016
+          filters: *all-tags
       - orb-tools/publish:
-          name: publish
-          context: global
-          filters:
-            branches:
-              ignore: master
-          orb-path: src/@orb.yml
-          orb-ref: entur/gradle-orb@dev:$CIRCLE_BRANCH
-      - orb-tools/increment:
-          name: release
-          context: global
-          filters:
-            branches:
-              only: master
-          orb-path: src/@orb.yml
-          orb-ref: entur/gradle-orb
+          orb-name: entur/gradle-orb
+          vcs-type: << pipeline.project.type >>
           requires:
-            - lint
+            - orb-tools/lint
+            - orb-tools/review
+            - orb-tools/pack
+            - shellcheck/check
+            - test-script
+          # Use a context to hold your publishing token.
+          context: orb-publishing
+          filters: *all-tags
+          enable-pr-comment: false
+      # Triggers the next workflow in the Orb Development Kit.
+      - orb-tools/continue:
+          pipeline-number: << pipeline.number >>
+          vcs-type: << pipeline.project.type >>
+          requires: [orb-tools/publish]
+          filters: *all-tags

@@ -1,0 +1,20 @@
+description: >
+  How to override the default executor and supply your own custom Docker image to the gradle orb jobs.
+usage:
+  version: 2.1
+
+  orbs:
+    gradle: entur/gradle-orb@x.y
+
+  executors:
+    my-executor:
+      docker:
+        - image: org/image:tag
+          auth:
+              username: $DOCKERHUB_LOGIN
+              password: $DOCKERHUB_PASSWORD
+  workflows:
+    gradle_test:
+      jobs:
+        - gradle/test:
+            executor: my-executor

@@ -1,0 +1,86 @@
+description: |
+  Run a set of steps with gradle dependencies cached.
+  This command will first restore a cache of gradle dependencies, if one was
+  saved by a previous build. The provided `steps` will then be executed, and
+  if successful, then a fresh cache will be saved, if required.
+  The contents of the `~/.gradle` directory is cached, which will substantially
+  improve build times for projects with many dependencies.
+  The cache-key is generated from any files named `build.gradle` that are
+  present in the `working_directory`.
+parameters:
+  steps:
+    type: steps
+  app_src_directory:
+    description: Useful when the source of your gradle project is not in the root directory of your git repo. Supply the name of the directory or relative path of the directory containing your source code.
+    type: string
+    default: ''
+  cache_key:
+    description: Add a custom suffix to your cache key in the event you need to work with multiple maven caches.
+    type: string
+    default: "v1"
+  deps_checksum_file:
+    description: File to use to generate the cache checksum for dependencies. Defaults to build.gradle. For example if using Gradle Kotlin DSL then set to build.gradle.kts instead.
+    type: string
+    default: "build.gradle"
+  wrapper_checksum_file:
+    description: File to use to generate the cache checksum for the gradle wrapper.
+    type: string
+    default: "gradle-wrapper.properties"
+steps:
+  - run:
+      name: Generate Dependencies Checksum
+      command: << include(scripts/checksum_build_files.sh) >>
+      environment:
+        PARAM_CHECKSUM_FILES: << parameters.deps_checksum_file>>
+  - run:
+      name: Generate Wrapper Checksum
+      command: << include(scripts/checksum_files.sh) >>
+      environment:
+        PARAM_CHECKSUM_FILES: << parameters.wrapper_checksum_file>>
+        CHECKSUM_SEED_LOCATION: "/tmp/gradle_wrapper_cache_seed"
+  - restore_cache:
+      name: Restore dependencies from cache
+      keys:
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_first_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_second_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_success" }}
+        - gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_previous_third_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status_failure" }}
+  - restore_cache:
+      name: Restore Wrapper from cache
+      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
+  - run:
+      name: Prepare cache cleanup.
+      command: << include(scripts/prepare_cleanup.sh) >>
+      environment:
+        PARAM_APP_DIRECTORY: << parameters.app_src_directory>>
+  - steps: << parameters.steps >>
+  - run:
+      name: Perform cache cleanup.
+      when: on_success
+      command: << include(scripts/cleanup.sh) >>
+      environment:
+        PARAM_APP_DIRECTORY: << parameters.app_src_directory>>
+  - run:
+      name: Set cache flags for a successful build.
+      when: on_success
+      command: << include(scripts/success_build.sh) >>
+  - run:
+      name: Set cache flags for a failed build.
+      when: on_fail
+      command: << include(scripts/failed_build.sh) >>
+  - save_cache:
+      name: Save dependencies cache
+      key: gradle-<< parameters.cache_key >>-{{ checksum "/tmp/git_last_hash" }}-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}-{{ checksum "/tmp/build_status" }}
+      when: always
+      paths:
+        - ~/.gradle/caches
+  - save_cache:
+      name: Save wrapper cache
+      paths:
+        - ~/.gradle/wrapper
+      key: gradle-<< parameters.cache_key>>-{{ checksum "/tmp/gradle_wrapper_cache_seed" }}
+
