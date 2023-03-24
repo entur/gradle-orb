@@ -75,6 +75,7 @@ workflows:
       - orb-tools/pack:
           filters: *all-tags
       - orb-tools/publish:
+          name: Publish orb to production
           orb-name: entur/gradle-orb
           vcs-type: << pipeline.project.type >>
           pub-type: production

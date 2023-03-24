@@ -38,6 +38,7 @@ workflows:
           exclude: SC2148,SC2038,SC2086,SC2002,SC2016
           filters: *all-tags
       - orb-tools/publish:
+          name: Publish orb to development
           orb-name: entur/gradle-orb
           vcs-type: << pipeline.project.type >>
           requires:
@@ -54,5 +55,5 @@ workflows:
       - orb-tools/continue:
           pipeline-number: << pipeline.number >>
           vcs-type: << pipeline.project.type >>
-          requires: [orb-tools/publish]
+          requires: [Publish orb to development]
           filters: *all-tags
