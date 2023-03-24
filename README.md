@@ -44,7 +44,7 @@ For Gradle version < 8, this orb uses a few internal Gradle classes to delete un
 | 0.0.6         | 2.2.0                | up to 7.2.x                  |
 | 0.0.7         | 2.2.0                | 7.3.x                        |
 | 0.0.8         | 2.2.0                | 7.3.x                        |
-| 0.0.x         | 3.0.0                | 7.x                          |
+| 0.0.9         | 3.0.0                | 7.x                          |
 
 Note that 7.x support is now deprecated.
 
@@ -53,7 +53,7 @@ For Gradle >= 8, the orb uses the 'officially endorsed' method of cleaning up th
 
 | Orb version   | Official Orb Version | Gradle version(s)            |
 | ------------- | -------------------- | ---------------------------- |
-| 0.0.x         | 3.0.0                | 8.x                          |
+| 0.0.9         | 3.0.0                | 8.x                          |
 
 ## Caching strategy
 In a nutshell, this orb __detects previous build file changes via the git history__, so that it can restore the previous Gradle cache regardless of what changed in the latest commit.
