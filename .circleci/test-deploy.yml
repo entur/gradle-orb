@@ -83,7 +83,7 @@ workflows:
             - orb-tools/pack
             - integration-test-cache
             - gradle/test
-          context: orb-publisher
+          context: orb-publishing
           filters:
             branches:
               ignore: /.*/
