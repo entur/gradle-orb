@@ -66,14 +66,12 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     
     CURRENT_DIRECTORY=$(pwd)
     
-    cd $GRADLE_ORB_TEMP_DIRECTORY
+    cd $GRADLE_ORB_TEMP_DIRECTORY || exit # exit due to shellcheck
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
     $CURRENT_DIRECTORY/gradlew -b cleanup.gradle projects --info --stacktrace 
     # clean up
     rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
-    
     rm -rf $GRADLE_ORB_TEMP_DIRECTORY
-    
     exit 0
 fi
 # this is the first successful build with this particular set of build files
