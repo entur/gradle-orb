@@ -42,16 +42,15 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     if [ "$gradleWrapperMainVersion" -gt "8" ] || [ "$gradleWrapperMinorVersion" -ge "8" ]; then
       echo "Clean cache for gradle >= 8.8"
 
-      # https://docs.gradle.org/8.8/release-notes.html#build-cache-changes
-      echo -e "beforeSettings {  caches {\ndownloadedResources.setRemoveUnusedEntriesAfterDays(1)\nreleasedWrappers.setRemoveUnusedEntriesAfterDays(1)\nsnapshotWrappers.setRemoveUnusedEntriesAfterDays(1)\ncreatedResources.setRemoveUnusedEntriesAfterDays(1)\nbuildCache.setRemoveUnusedEntriesAfterDays(1)\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle.kts
+      echo -e "beforeSettings { settings -> settings.caches {\nbuildCache.removeUnusedEntriesAfterDays = 1\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 
     else
       echo "Clean cache for gradle 8.0 - 8.7"
       # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
-      echo -e "beforeSettings {  caches {\ndownloadedResources.setRemoveUnusedEntriesAfterDays(1)\nreleasedWrappers.setRemoveUnusedEntriesAfterDays(1)\nsnapshotWrappers.setRemoveUnusedEntriesAfterDays(1)\ncreatedResources.setRemoveUnusedEntriesAfterDays(1)\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle.kts
+      echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     fi
     
-    cat  $GRADLE_INIT_DIRECTORY/cache-settings.gradle.kts
+    cat  $GRADLE_INIT_DIRECTORY/cache-settings.gradle
 
     # work in subdirectory due to https://github.com/gradle/gradle/issues/29377
     GRADLE_ORB_TEMP_DIRECTORY=/tmp/gradle-orb
@@ -61,17 +60,17 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     fi
     mkdir $GRADLE_ORB_TEMP_DIRECTORY
     
-    # create dummy files
-    touch $GRADLE_ORB_TEMP_DIRECTORY/settings.gradle.kts
-    touch $GRADLE_ORB_TEMP_DIRECTORY/cleanup.gradle.kts
+    # create dummy build files
+    touch $GRADLE_ORB_TEMP_DIRECTORY/settings.gradle
+    touch $GRADLE_ORB_TEMP_DIRECTORY/cleanup.gradle
     
     CURRENT_DIRECTORY=$(pwd)
     
     cd $GRADLE_ORB_TEMP_DIRECTORY
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    $CURRENT_DIRECTORY/gradlew -b cleanup.gradle.kts projects --info --stacktrace 
+    $CURRENT_DIRECTORY/gradlew -b cleanup.gradle projects --info --stacktrace 
     # clean up
-    rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle.kts
+    rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     
     rm -rf $GRADLE_ORB_TEMP_DIRECTORY
     
