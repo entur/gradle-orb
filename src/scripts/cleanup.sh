@@ -50,11 +50,8 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
       echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     fi
     
-    cat  $GRADLE_INIT_DIRECTORY/cache-settings.gradle
-
     # work in subdirectory due to https://github.com/gradle/gradle/issues/29377
     GRADLE_ORB_TEMP_DIRECTORY=/tmp/gradle-orb
-
     if [[ ! -e $GRADLE_ORB_TEMP_DIRECTORY ]]; then
       rm -rf $GRADLE_ORB_TEMP_DIRECTORY
     fi
