@@ -32,21 +32,43 @@ gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep 
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     # make it so the built-in GC runs
 
-    echo "Clean cache for gradle >= 8"
-    # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
     # https://docs.gradle.org/current/userguide/init_scripts.html#sec:using_an_init_script
     GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
     if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
       mkdir -p $GRADLE_INIT_DIRECTORY
     fi
-    echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
+    
+    gradleWrapperMinorVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 2)"
+    if [ "$gradleWrapperMainVersion" -gt "8" ] || [ "$gradleWrapperMinorVersion" -ge "8" ]; then
+      echo "Clean cache for gradle >= 8.8"
 
-    touch /tmp/settings.gradle
-    touch /tmp/cleanup.gradle
+      echo -e "beforeSettings { settings -> settings.caches {\nbuildCache.removeUnusedEntriesAfterDays = 1\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
+
+    else
+      echo "Clean cache for gradle 8.0 - 8.7"
+      # https://docs.gradle.org/8.0-rc-3/userguide/directory_layout.html#dir:gradle_user_home:configure_cache_cleanup
+      echo -e "beforeSettings { settings -> settings.caches {\ndownloadedResources.removeUnusedEntriesAfterDays = 1\nreleasedWrappers.removeUnusedEntriesAfterDays = 1\nsnapshotWrappers.removeUnusedEntriesAfterDays = 1\ncreatedResources.removeUnusedEntriesAfterDays = 1\ncleanup = Cleanup.ALWAYS\n}}" > $GRADLE_INIT_DIRECTORY/cache-settings.gradle
+    fi
+    
+    # work in subdirectory due to https://github.com/gradle/gradle/issues/29377
+    GRADLE_ORB_TEMP_DIRECTORY=/tmp/gradle-orb
+    if [[ ! -e $GRADLE_ORB_TEMP_DIRECTORY ]]; then
+      rm -rf $GRADLE_ORB_TEMP_DIRECTORY
+    fi
+    mkdir $GRADLE_ORB_TEMP_DIRECTORY
+    
+    # create dummy build files
+    touch $GRADLE_ORB_TEMP_DIRECTORY/settings.gradle
+    touch $GRADLE_ORB_TEMP_DIRECTORY/cleanup.gradle
+    
+    CURRENT_DIRECTORY=$(pwd)
+    
+    cd $GRADLE_ORB_TEMP_DIRECTORY || exit # exit due to shellcheck
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    ./gradlew -b /tmp/cleanup.gradle projects --info
+    $CURRENT_DIRECTORY/gradlew -b cleanup.gradle projects --info --stacktrace 
     # clean up
     rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
+    rm -rf $GRADLE_ORB_TEMP_DIRECTORY
     exit 0
 fi
 # this is the first successful build with this particular set of build files
