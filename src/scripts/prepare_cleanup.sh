@@ -21,7 +21,7 @@ if [ -z "$PARAM_APP_DIRECTORY" ] ; then
   PARAM_APP_DIRECTORY="."
 fi
 
-gradleWrapperMainVersion="$(cat $PARAM_APP_DIRECTORY/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
+gradleWrapperMainVersion="$(cat gradle/wrapper/gradle-wrapper.properties | grep distributionUrl | cut -d'-' -f 2 | cut -d'.' -f 1)"
 if [ "$gradleWrapperMainVersion" -ge "8" ]; then
   GRADLE_INIT_DIRECTORY="$GRADLE_DIRECTORY/init.d"
   if [[ ! -e $GRADLE_INIT_DIRECTORY ]]; then
