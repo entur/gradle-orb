@@ -59,13 +59,13 @@ if [ "$gradleWrapperMainVersion" -ge "8" ]; then
     
     # create dummy build files
     touch $GRADLE_ORB_TEMP_DIRECTORY/settings.gradle
-    touch $GRADLE_ORB_TEMP_DIRECTORY/cleanup.gradle
+    touch $GRADLE_ORB_TEMP_DIRECTORY/build.gradle
     
     CURRENT_DIRECTORY=$(pwd)
     
     cd $GRADLE_ORB_TEMP_DIRECTORY || exit # exit due to shellcheck
     echo "A new cache entry will be created, cleaning files not accessed during the last 24 hours.."
-    $CURRENT_DIRECTORY/gradlew -b cleanup.gradle projects --info --stacktrace 
+    $CURRENT_DIRECTORY/gradlew projects --info --stacktrace
     # clean up
     rm $GRADLE_INIT_DIRECTORY/cache-settings.gradle
     rm -rf $GRADLE_ORB_TEMP_DIRECTORY
