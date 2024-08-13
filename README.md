@@ -23,7 +23,7 @@ Import the orb
 
 ```yaml
 orbs:
-  gradle: entur/gradle-orb@0.0.x
+  gradle: entur/gradle-orb@0.x.x
 ```
 
 where `x` is the latest version from [the orb registry](https://circleci.com/orbs/registry/orb/entur/gradle-orb).
@@ -55,7 +55,7 @@ For Gradle >= 8, the orb uses the 'officially endorsed' method of cleaning up th
 | ------------- | -------------------- | ---------------------------- |
 | 0.0.9         | 3.0.0                | 8.0-8.7                      |
 | 0.1.0         | 3.0.0                | 8.0-8.8                      |
-| 0.2.0         | 3.0.0                | 8.0-8.9                      |
+| 0.2.0         | 3.0.0                | 8.0-8.9+                     |
 
 ## Caching strategy
 In a nutshell, this orb __detects previous build file changes via the git history__, so that it can restore the previous Gradle cache regardless of what changed in the latest commit.
